@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaMonitor - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">AquaMonitor</div>
+            <nav class="nav">
+                <a href="home.html">Home</a>
+                <a href="dashboard.html" class="active">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <div class="sidebar">
+                <div class="panel">
+                    <h2>Input Parameters</h2>
+                    
+                    <div class="input-group">
+                        <label>Select Species</label>
+                        <select id="species-select" class="form-control" onchange="updateAllCharts()">
+                            <option value="general">General Fish</option>
+                            <option value="tilapia">Tilapia</option>
+                            <option value="catfish">Catfish</option>
+                            <option value="salmon">Salmon</option>
+                            <option value="trout">Trout</option>
+                            <option value="carp">Carp</option>
+                            <option value="shrimp">Shrimp (Penaeus)</option>
+                            <option value="prawn">Freshwater Prawn</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mode-tabs">
+                        <button class="tab-btn active" id="manualBtn" onclick="switchMode('manual')">Manual Input</button>
+                        <button class="tab-btn" id="locationBtn" onclick="switchMode('location')">GPS Coordinates</button>
+                        <button class="tab-btn" id="presetBtn" onclick="switchMode('preset')">Select Location</button>
+                    </div>
+                    
+                    <form id="predictionForm" style="display: block;">
+                        <div class="input-group">
+                            <label>Water Temperature (°C)</label>
+                            <input type="number" id="temperature" step="0.1" required placeholder="25.5" class="form-control">
+                            <span class="hint">Optimal: 20-28°C</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Dissolved Oxygen (mg/L)</label>
+                            <input type="number" id="dissolved_oxygen" step="0.1" required placeholder="8.5" class="form-control">
+                            <span class="hint">Optimal: 5-10 mg/L</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label>pH Level</label>
+                            <input type="number" id="ph" step="0.01" required placeholder="7.2" class="form-control">
+                            <span class="hint">Optimal: 6.5-8.5</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">Predict Quality</button>
+                    </form>
+                    
+                    <form id="locationForm" style="display: none;">
+                        <div class="input-group">
+                            <label>Latitude</label>
+                            <input type="number" id="latitude" step="0.00001" required placeholder="10.98267" class="form-control">
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Longitude</label>
+                            <input type="number" id="longitude" step="0.00001" required placeholder="76.97678" class="form-control">
+                        </div>
+                        
+                        <button type="button" class="btn btn-secondary btn-block" onclick="getLocation()">Use My Location</button>
+                        <button type="submit" class="btn btn-primary btn-block">Predict with LSTM</button>
+                    </form>
+                    
+                    <form id="presetForm" style="display: none;">
+                        <div class="input-group">
+                            <label>Search Location in India</label>
+                            <input type="text" id="locationSearch" placeholder="Type city name..." autocomplete="off" oninput="filterLocations()" class="form-control">
+                            <div id="locationDropdown" class="location-dropdown"></div>
+                            <input type="hidden" id="selectedLat">
+                            <input type="hidden" id="selectedLon">
+                            <span class="hint" id="presetCoords">Select a location</span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">Predict with LSTM</button>
+                    </form>
+                </div>
+
+                <div class="panel">
+                    <h3>Quality Score</h3>
+                    <div class="score-display" id="scoreDisplay">
+                        <div class="score-value" id="scoreValue">--</div>
+                        <div class="score-label" id="scoreLabel">--</div>
+                    </div>
+                    <small id="timestamp"></small>
+                </div>
+
+                <div class="panel">
+                    <h3>Fish Health Risk</h3>
+                    <div class="risk-display" id="riskDisplay">
+                        <div class="risk-level" id="riskLevel">--</div>
+                        <div class="risk-message" id="riskMessage">Awaiting prediction...</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Next Hour Prediction</h3>
+                    <p id="predictionTime" class="pred-time">--</p>
+                    <div class="pred-grid">
+                        <div class="pred-item">
+                            <span>Temperature</span>
+                            <strong id="predTemp">--</strong>
+                        </div>
+                        <div class="pred-item">
+                            <span>Dissolved O₂</span>
+                            <strong id="predDO">--</strong>
+                        </div>
+                        <div class="pred-item">
+                            <span>pH Level</span>
+                            <strong id="predPH">--</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Recommendations</h3>
+                    <ul id="recommendationsList"></ul>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="panel chart-panel">
+                    <div class="panel-header">
+                        <h3>Combined Trends</h3>
+                        <select id="timeRange1" onchange="updateChart(1)" class="form-control-sm">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="168">Last 7 Days</option>
+                            <option value="720" selected>Last 30 Days</option>
+                            <option value="8760">Last 1 Year</option>
+                        </select>
+                    </div>
+                    <canvas id="chart1"></canvas>
+                </div>
+
+                <div class="panel chart-panel">
+                    <div class="panel-header">
+                        <h3>Water Temperature</h3>
+                        <select id="timeRange2" onchange="updateChart(2)" class="form-control-sm">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="168">Last 7 Days</option>
+                            <option value="720" selected>Last 30 Days</option>
+                            <option value="8760">Last 1 Year</option>
+                        </select>
+                    </div>
+                    <canvas id="chart2"></canvas>
+                </div>
+
+                <div class="panel chart-panel">
+                    <div class="panel-header">
+                        <h3>Dissolved Oxygen</h3>
+                        <select id="timeRange3" onchange="updateChart(3)" class="form-control-sm">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="168">Last 7 Days</option>
+                            <option value="720" selected>Last 30 Days</option>
+                            <option value="8760">Last 1 Year</option>
+                        </select>
+                    </div>
+                    <canvas id="chart3"></canvas>
+                </div>
+
+                <div class="panel chart-panel">
+                    <div class="panel-header">
+                        <h3>pH Level</h3>
+                        <select id="timeRange4" onchange="updateChart(4)" class="form-control-sm">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="168">Last 7 Days</option>
+                            <option value="720" selected>Last 30 Days</option>
+                            <option value="8760">Last 1 Year</option>
+                        </select>
+                    </div>
+                    <canvas id="chart4"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>AquaMonitor</h4>
+                    <p>Professional water quality monitoring solution for aquaculture industry</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="dashboard.html">Dashboard</a></li>
+                        <li><a href="analytics.html">Analytics</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Email: info@aquamonitor.com</p>
+                    <p>Phone: +1 (555) 123-4567</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 AquaMonitor. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>

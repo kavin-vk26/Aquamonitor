@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaMonitor - Analytics</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">AquaMonitor</div>
+            <nav class="nav">
+                <a href="home.html">Home</a>
+                <a href="dashboard.html">Dashboard</a>
+                <a href="analytics.html" class="active">Analytics</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="analytics-main">
+        <div class="container">
+            <h1>Data Analytics</h1>
+            <p class="page-subtitle">Comprehensive historical data analysis and export</p>
+
+            <div class="panel">
+                <h3>Select Location</h3>
+                <div class="mode-tabs" style="margin-bottom: 1rem;">
+                    <button class="tab-btn active" id="manualLocBtn" onclick="switchAnalyticsMode('manual')">Manual Input</button>
+                    <button class="tab-btn" id="gpsLocBtn" onclick="switchAnalyticsMode('gps')">Use GPS</button>
+                    <button class="tab-btn" id="presetLocBtn" onclick="switchAnalyticsMode('preset')">Select Location</button>
+                </div>
+                
+                <div id="manualLocForm" style="display: flex; gap: 1rem; align-items: end;">
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label>Latitude</label>
+                        <input type="number" id="analyticsLat" step="0.00001" value="11.0168" class="form-control">
+                    </div>
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label>Longitude</label>
+                        <input type="number" id="analyticsLon" step="0.00001" value="76.9558" class="form-control">
+                    </div>
+                    <button id="loadDataBtn" class="btn btn-primary">Load Data</button>
+                </div>
+                
+                <div id="gpsLocForm" style="display: none;">
+                    <button id="useGpsBtn" class="btn btn-secondary btn-block">Use My Current Location</button>
+                </div>
+                
+                <div id="presetLocForm" style="display: none;">
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>Search Location in India</label>
+                        <input type="text" id="analyticsLocationSearch" placeholder="Type city name..." autocomplete="off" oninput="filterAnalyticsLocations()" class="form-control">
+                        <div id="analyticsLocationDropdown" class="location-dropdown"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <button id="loadDataBtnMain" class="btn btn-primary btn-block">Load Data</button>
+                </div>
+                
+                <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);" id="currentLocationText">Select location and click Load Data button</p>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Historical Data Records</h2>
+                    <div class="export-controls">
+                        <select id="csvTimeRange" class="form-control-sm">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="168">Last 7 Days</option>
+                            <option value="720" selected>Last 30 Days</option>
+                            <option value="8760">Last 1 Year</option>
+                        </select>
+                        <button id="downloadBtn" class="btn btn-primary">Download CSV</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="dataTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>DateTime</th>
+                                <th>Air Temp (°C)</th>
+                                <th>Humidity (%)</th>
+                                <th>Rain (mm)</th>
+                                <th>Water Temp (°C)</th>
+                                <th>DO (mg/L)</th>
+                                <th>pH</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center">Loading data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>AquaMonitor</h4>
+                    <p>Professional water quality monitoring solution for aquaculture industry</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="dashboard.html">Dashboard</a></li>
+                        <li><a href="analytics.html">Analytics</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Email: info@aquamonitor.com</p>
+                    <p>Phone: +1 (555) 123-4567</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 AquaMonitor. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let analyticsMode = 'manual';
+        
+        function switchAnalyticsMode(mode) {
+            analyticsMode = mode;
+            document.getElementById('manualLocBtn').classList.toggle('active', mode === 'manual');
+            document.getElementById('gpsLocBtn').classList.toggle('active', mode === 'gps');
+            document.getElementById('presetLocBtn').classList.toggle('active', mode === 'preset');
+            document.getElementById('manualLocForm').style.display = mode === 'manual' ? 'flex' : 'none';
+            document.getElementById('gpsLocForm').style.display = mode === 'gps' ? 'block' : 'none';
+            document.getElementById('presetLocForm').style.display = mode === 'preset' ? 'block' : 'none';
+        }
+        
+        function filterAnalyticsLocations() {
+            const searchText = document.getElementById('analyticsLocationSearch').value.toLowerCase();
+            const dropdown = document.getElementById('analyticsLocationDropdown');
+            
+            if (searchText.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+            
+            const filtered = indianCities.filter(city => city.name.toLowerCase().includes(searchText));
+            
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="location-item">No locations found</div>';
+                dropdown.classList.add('show');
+                return;
+            }
+            
+            dropdown.innerHTML = filtered.map(city => 
+                `<div class="location-item" onclick="selectAnalyticsLocation('${city.name}', ${city.lat}, ${city.lon})">${city.name}</div>`
+            ).join('');
+            
+            dropdown.classList.add('show');
+        }
+        
+        function selectAnalyticsLocation(name, lat, lon) {
+            document.getElementById('analyticsLocationSearch').value = name;
+            document.getElementById('analyticsLat').value = lat;
+            document.getElementById('analyticsLon').value = lon;
+            document.getElementById('analyticsLocationDropdown').classList.remove('show');
+            document.getElementById('currentLocationText').textContent = `Selected: ${name} (${lat}, ${lon}) - Click Load Data`;
+        }
+        
+        // Load data on analytics page
+        window.addEventListener('load', () => {
+            try {
+                const savedLocation = sessionStorage.getItem('aq_location');
+                const savedData = sessionStorage.getItem('aq_data');
+                
+                if (savedLocation) {
+                    const loc = JSON.parse(savedLocation);
+                    document.getElementById('analyticsLat').value = loc.latitude;
+                    document.getElementById('analyticsLon').value = loc.longitude;
+                    currentLocation = loc;
+                }
+                
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    allChartData = data;
+                    const tbody = document.getElementById('dataTableBody');
+                    if (tbody && data.length > 0) {
+                        tbody.innerHTML = '';
+                        data.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${row.datetime}</td>
+                                <td>${row.air_temp}</td>
+                                <td>${row.humidity}</td>
+                                <td>${row.rain}</td>
+                                <td>${row.water_temp}</td>
+                                <td>${row.do}</td>
+                                <td>${row.ph}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                        document.getElementById('currentLocationText').textContent = `Current: Location (${loc.latitude}, ${loc.longitude})`;
+                    }
+                }
+            } catch (e) {
+                console.error('Analytics load error:', e);
+            }
+        });
+        
+        // Use GPS button
+        const useGpsBtn = document.getElementById('useGpsBtn');
+        if (useGpsBtn) {
+            useGpsBtn.addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude.toFixed(5);
+                            const lon = position.coords.longitude.toFixed(5);
+                            document.getElementById('analyticsLat').value = lat;
+                            document.getElementById('analyticsLon').value = lon;
+                            document.getElementById('currentLocationText').textContent = `Selected: GPS Location (${lat}, ${lon}) - Click Load Data`;
+                        },
+                        (error) => alert('Unable to get location: ' + error.message)
+                    );
+                } else {
+                    alert('Geolocation is not supported by this browser.');
+                }
+            });
+        }
+        
+        // Main Load Data button handler
+        const loadDataBtnMain = document.getElementById('loadDataBtnMain');
+        if (loadDataBtnMain) {
+            loadDataBtnMain.addEventListener('click', () => {
+                const lat = parseFloat(document.getElementById('analyticsLat').value);
+                const lon = parseFloat(document.getElementById('analyticsLon').value);
+                if (lat && lon) {
+                    document.getElementById('currentLocationText').textContent = `Loading data for (${lat}, ${lon})...`;
+                    currentLocation = { latitude: lat, longitude: lon };
+                    saveState();
+                    loadHistoricalData(lat, lon).then(() => {
+                        document.getElementById('currentLocationText').textContent = `Current: Location (${lat}, ${lon})`;
+                    });
+                } else {
+                    alert('Please enter valid coordinates');
+                }
+            });
+        }
+        
+        // Load data button handler
+        const loadDataBtn = document.getElementById('loadDataBtn');
+        if (loadDataBtn) {
+            loadDataBtn.addEventListener('click', () => {
+                const lat = parseFloat(document.getElementById('analyticsLat').value);
+                const lon = parseFloat(document.getElementById('analyticsLon').value);
+                if (lat && lon) {
+                    document.getElementById('currentLocationText').textContent = `Loading data for (${lat}, ${lon})...`;
+                    currentLocation = { latitude: lat, longitude: lon };
+                    saveState();
+                    loadHistoricalData(lat, lon).then(() => {
+                        document.getElementById('currentLocationText').textContent = `Current: Location (${lat}, ${lon})`;
+                    });
+                } else {
+                    alert('Please enter valid coordinates');
+                }
+            });
+        }
+        
+        // CSV download handler
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => {
+                if (!allChartData) {
+                    alert('No data available. Please wait for data to load.');
+                    return;
+                }
+                
+                const timeRange = parseInt(document.getElementById('csvTimeRange').value);
+                const totalHours = allChartData.length;
+                
+                let filteredData;
+                if (timeRange >= totalHours) {
+                    filteredData = allChartData;
+                } else {
+                    filteredData = allChartData.slice(-timeRange);
+                }
+                
+                const headers = ['DateTime', 'Air Temp', 'Humidity', 'Rain', 'Water Temp', 'DO', 'pH'];
+                let csvContent = headers.join(',') + '\n';
+                
+                filteredData.forEach(row => {
+                    csvContent += `${row.datetime},${row.air_temp},${row.humidity},${row.rain},${row.water_temp},${row.do},${row.ph}\n`;
+                });
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                let rangeLabel;
+                if (timeRange === 24) rangeLabel = '24hours';
+                else if (timeRange === 168) rangeLabel = '7days';
+                else if (timeRange === 720) rangeLabel = '30days';
+                else rangeLabel = '1year';
+                
+                a.download = `water_quality_${rangeLabel}_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            });
+        }
+    </script>
+</body>
+</html>

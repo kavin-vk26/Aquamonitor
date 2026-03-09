@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Quality Predictor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="header">
+        <h1>💧 Water Quality Prediction System</h1>
+        <p>AI-Powered LSTM Model for Aquaculture Monitoring</p>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Panel: Input Form -->
+        <div class="left-panel">
+            <div class="box input-box">
+                <h2>Input Parameters</h2>
+                
+                <!-- Species Selection -->
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>🐟 Select Species</label>
+                    <select id="species-select" class="species-select" onchange="updateAllCharts()">
+                        <option value="general">General Fish</option>
+                        <option value="tilapia">Tilapia</option>
+                        <option value="catfish">Catfish</option>
+                        <option value="salmon">Salmon</option>
+                        <option value="trout">Trout</option>
+                        <option value="carp">Carp</option>
+                        <option value="shrimp">Shrimp (Penaeus)</option>
+                        <option value="prawn">Freshwater Prawn</option>
+                    </select>
+                </div>
+                
+                <!-- Mode Toggle -->
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <button class="mode-btn active" id="manualBtn" onclick="switchMode('manual')">Manual Input</button>
+                    <button class="mode-btn" id="locationBtn" onclick="switchMode('location')">GPS Coordinates</button>
+                    <button class="mode-btn" id="presetBtn" onclick="switchMode('preset')">Select Location</button>
+                </div>
+                
+                <!-- Manual Input Form -->
+                <form id="predictionForm" style="display: block;">
+                    <div class="input-group">
+                        <label>Water Temperature (°C)</label>
+                        <input type="number" id="temperature" step="0.1" required placeholder="e.g., 25.5">
+                        <span class="hint">Optimal: 20-28°C</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Dissolved Oxygen (mg/L)</label>
+                        <input type="number" id="dissolved_oxygen" step="0.1" required placeholder="e.g., 8.5">
+                        <span class="hint">Optimal: 5-10 mg/L</span>
+                    </div>
+
+                    <div class="input-group">
+                        <label>pH Level</label>
+                        <input type="number" id="ph" step="0.01" required placeholder="e.g., 7.2">
+                        <span class="hint">Optimal: 6.5-8.5</span>
+                    </div>
+
+                    <button type="submit" class="btn-predict">🔍 Predict Quality</button>
+                </form>
+                
+                <!-- Location-Based Form -->
+                <form id="locationForm" style="display: none;">
+                    <div class="input-group">
+                        <label>Latitude</label>
+                        <input type="number" id="latitude" step="0.00001" required placeholder="e.g., 10.98267">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Longitude</label>
+                        <input type="number" id="longitude" step="0.00001" required placeholder="e.g., 76.97678">
+                    </div>
+                    
+                    <button type="button" class="btn-predict" onclick="getLocation()" style="margin-bottom: 10px;">📍 Use My Location</button>
+                    <button type="submit" class="btn-predict">🤖 Predict with LSTM</button>
+                </form>
+                
+                <!-- Preset Location Form -->
+                <form id="presetForm" style="display: none;">
+                    <div class="input-group">
+                        <label>Search Location in India</label>
+                        <input type="text" id="locationSearch" placeholder="Type city name..." autocomplete="off" oninput="filterLocations()">
+                        <div id="locationDropdown" class="location-dropdown"></div>
+                        <input type="hidden" id="selectedLat">
+                        <input type="hidden" id="selectedLon">
+                        <span class="hint" id="presetCoords">Select a location</span>
+                    </div>
+                    
+                    <button type="submit" class="btn-predict">🤖 Predict with LSTM</button>
+                </form>
+            </div>
+
+            <div class="box quality-box" id="qualityBox">
+                <h2>Quality Score</h2>
+                <div class="score-display" id="scoreDisplay">
+                    <div class="score-value" id="scoreValue">--</div>
+                    <div class="score-label" id="scoreLabel">--</div>
+                </div>
+                <small id="timestamp"></small>
+            </div>
+
+            <div class="box risk-box" id="riskBox">
+                <h2>🐟 Fish Health Risk</h2>
+                <div class="risk-display" id="riskDisplay">
+                    <div class="risk-level" id="riskLevel">--</div>
+                    <div class="risk-message" id="riskMessage">Awaiting prediction...</div>
+                </div>
+            </div>
+
+            <div class="box prediction-box">
+                <h2>🔮 Next Hour Prediction</h2>
+                <p id="predictionTime" class="pred-time">--</p>
+                <div class="pred-grid">
+                    <div class="pred-item">
+                        <span>Temperature</span>
+                        <strong id="predTemp">--</strong>
+                    </div>
+                    <div class="pred-item">
+                        <span>Dissolved O₂</span>
+                        <strong id="predDO">--</strong>
+                    </div>
+                    <div class="pred-item">
+                        <span>pH Level</span>
+                        <strong id="predPH">--</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box rec-box">
+                <h2>📋 Recommendations</h2>
+                <ul id="recommendationsList"></ul>
+            </div>
+        </div>
+
+        <!-- Right Panel: Data Visualization -->
+        <div class="right-panel">
+            <!-- Combined Trends Chart -->
+            <div class="box chart-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>📊 Combined Trends</h2>
+                    <select id="timeRange1" onchange="updateChart(1)" class="time-select">
+                        <option value="24">Last 24 Hours</option>
+                        <option value="168">Last 7 Days</option>
+                        <option value="720" selected>Last 30 Days</option>
+                        <option value="8760">Last 1 Year</option>
+                    </select>
+                </div>
+                <canvas id="chart1"></canvas>
+            </div>
+
+            <!-- Water Temperature Chart -->
+            <div class="box chart-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>🌡️ Water Temperature</h2>
+                    <select id="timeRange2" onchange="updateChart(2)" class="time-select">
+                        <option value="24">Last 24 Hours</option>
+                        <option value="168">Last 7 Days</option>
+                        <option value="720" selected>Last 30 Days</option>
+                        <option value="8760">Last 1 Year</option>
+                    </select>
+                </div>
+                <canvas id="chart2"></canvas>
+            </div>
+
+            <!-- Dissolved Oxygen Chart -->
+            <div class="box chart-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>💧 Dissolved Oxygen</h2>
+                    <select id="timeRange3" onchange="updateChart(3)" class="time-select">
+                        <option value="24">Last 24 Hours</option>
+                        <option value="168">Last 7 Days</option>
+                        <option value="720" selected>Last 30 Days</option>
+                        <option value="8760">Last 1 Year</option>
+                    </select>
+                </div>
+                <canvas id="chart3"></canvas>
+            </div>
+
+            <!-- pH Level Chart -->
+            <div class="box chart-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>⚗️ pH Level</h2>
+                    <select id="timeRange4" onchange="updateChart(4)" class="time-select">
+                        <option value="24">Last 24 Hours</option>
+                        <option value="168">Last 7 Days</option>
+                        <option value="720" selected>Last 30 Days</option>
+                        <option value="8760">Last 1 Year</option>
+                    </select>
+                </div>
+                <canvas id="chart4"></canvas>
+            </div>
+
+            <div class="box table-box">
+                <div class="table-header">
+                    <h2>📁 Data Records</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="csvTimeRange" class="time-select" style="padding: 8px 12px;">
+                            <option value="24">Last 24 Hours</option>
+                            <option value="168">Last 7 Days</option>
+                            <option value="720" selected>Last 30 Days</option>
+                            <option value="8760">Last 1 Year</option>
+                        </select>
+                        <button id="downloadBtn" class="btn-download">⬇ Download CSV</button>
+                    </div>
+                </div>
+                <div class="table-scroll" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px;">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">DateTime</th>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">Air Temp</th>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">Humidity</th>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">Rain</th>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">Water Temp</th>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">DO</th>
+                                <th style="position: sticky; top: 0; background: #f9fafb; z-index: 10;">pH</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center;">Loading data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2"></script>
+    <script src="script.js"></script>
+    <script>
+        // Auto-load data on page load for indexold.html
+        window.addEventListener('load', () => {
+            loadHistoricalData();
+        });
+    </script>
+</body>
+</html>
