@@ -202,6 +202,12 @@ body {
     margin-top: 0.5rem;
 }
 
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+}
+
 /* Tab buttons */
 .tab-btn {
     flex: 1;
@@ -519,6 +525,47 @@ body {
     background: var(--light);
     border-left: 3px solid var(--primary-color);
     border-radius: 4px;
+}
+
+/* Smart Advisory */
+.smart-advisory {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #0ea5e9;
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.advisory-message {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.advisory-optimal {
+    background: rgba(34, 197, 94, 0.1);
+    border-left: 4px solid #22c55e;
+    color: #166534;
+}
+
+.advisory-warning {
+    background: rgba(251, 191, 36, 0.1);
+    border-left: 4px solid #fbbf24;
+    color: #92400e;
+}
+
+.advisory-critical {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+}
+
+.advisory-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
 }
 
 /* Export Controls */

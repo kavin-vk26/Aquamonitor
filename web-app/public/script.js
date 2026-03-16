@@ -77,9 +77,21 @@ function selectAnalyticsLocation(name, lat, lon) {
 function loadAnalyticsData() {
     const lat = document.getElementById('analyticsLatitude').value || document.getElementById('analyticsSelectedLat').value;
     const lon = document.getElementById('analyticsLongitude').value || document.getElementById('analyticsSelectedLon').value;
+    const fromDate = document.getElementById('analyticsFromDate')?.value || '';
+    const toDate = document.getElementById('analyticsToDate')?.value || '';
     
     if (!lat || !lon) {
         alert('Please enter coordinates or select a location');
+        return;
+    }
+    
+    if (!fromDate || !toDate) {
+        alert('Please select both From and To dates');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        alert('From date cannot be later than To date');
         return;
     }
     
@@ -90,7 +102,7 @@ function loadAnalyticsData() {
     currentLocation = { latitude: parseFloat(lat), longitude: parseFloat(lon) };
     saveState();
     
-    loadHistoricalData(lat, lon)
+    loadHistoricalDataForAnalytics(lat, lon, fromDate, toDate)
         .then(() => {
             updateLoadingStep('Data loaded successfully!', 100);
             setTimeout(() => hideLoading(), 500);
@@ -105,6 +117,66 @@ window.getAnalyticsLocation = getAnalyticsLocation;
 window.filterAnalyticsLocations = filterAnalyticsLocations;
 window.selectAnalyticsLocation = selectAnalyticsLocation;
 window.loadAnalyticsData = loadAnalyticsData;
+
+async function loadHistoricalDataForAnalytics(lat, lon, startDate, endDate) {
+    const latitude = lat || currentLocation.latitude || 11.0168;
+    const longitude = lon || currentLocation.longitude || 76.9558;
+    
+    try {
+        updateLoadingStep('Connecting to weather data API...', 30);
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        updateLoadingStep('Fetching historical weather data...', 50);
+        const res = await fetch(addCacheBuster(`/api/fetch-data?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}`));
+        
+        updateLoadingStep('Processing weather data...', 70);
+        const csvData = await res.json();
+        
+        if (csvData.error) { alert('Error loading data: ' + csvData.error); return; }
+        
+        if (csvData.data && csvData.data.length > 0) {
+            updateLoadingStep('Preparing analytics table...', 85);
+            
+            // Store analytics data
+            window.analyticsData = csvData.data;
+            window.analyticsCsvData = csvData.csv;
+            
+            // Update analytics table
+            const tbody = document.getElementById('dataTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                csvData.data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${row.datetime}</td><td>${row.air_temp}</td><td>${row.humidity}</td><td>${row.rain}</td><td>${row.water_temp}</td><td>${row.do}</td><td>${row.ph}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            
+            // Save analytics data to session storage
+            saveState();
+            
+            updateLoadingStep('Analytics ready!', 95);
+        } else {
+            alert('No data available for this location and date range.');
+        }
+    } catch (err) {
+        alert('Failed to load data: ' + err.message);
+    }
+}
+
+function restoreAnalyticsTable() {
+    if (!window.analyticsData) return;
+    
+    const tbody = document.getElementById('dataTableBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        window.analyticsData.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.datetime}</td><td>${row.air_temp}</td><td>${row.humidity}</td><td>${row.rain}</td><td>${row.water_temp}</td><td>${row.do}</td><td>${row.ph}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+}
 
 let currentMode = 'manual';
 let currentLocation = { latitude: 11.0168, longitude: 76.9558 };
@@ -174,6 +246,10 @@ function saveState() {
         if (allChartData) sessionStorage.setItem('aq_data', JSON.stringify(allChartData));
         if (lastPrediction) sessionStorage.setItem('aq_prediction', JSON.stringify(lastPrediction));
         
+        // Save analytics data if it exists
+        if (window.analyticsData) sessionStorage.setItem('aq_analytics_data', JSON.stringify(window.analyticsData));
+        if (window.analyticsCsvData) sessionStorage.setItem('aq_analytics_csv', window.analyticsCsvData);
+        
         // Save form values
         const formFields = {
             temperature: document.getElementById('temperature')?.value,
@@ -185,7 +261,15 @@ function saveState() {
             selectedLat: document.getElementById('selectedLat')?.value,
             selectedLon: document.getElementById('selectedLon')?.value,
             commonFromDate: document.getElementById('commonFromDate')?.value,
-            commonToDate: document.getElementById('commonToDate')?.value
+            commonToDate: document.getElementById('commonToDate')?.value,
+            // Analytics form values
+            analyticsLatitude: document.getElementById('analyticsLatitude')?.value,
+            analyticsLongitude: document.getElementById('analyticsLongitude')?.value,
+            analyticsLocationSearch: document.getElementById('analyticsLocationSearch')?.value,
+            analyticsSelectedLat: document.getElementById('analyticsSelectedLat')?.value,
+            analyticsSelectedLon: document.getElementById('analyticsSelectedLon')?.value,
+            analyticsFromDate: document.getElementById('analyticsFromDate')?.value,
+            analyticsToDate: document.getElementById('analyticsToDate')?.value
         };
         sessionStorage.setItem('aq_form_values', JSON.stringify(formFields));
         
@@ -209,10 +293,16 @@ function loadSavedState() {
         const savedFormValues = sessionStorage.getItem('aq_form_values');
         const chartControlsVisible = sessionStorage.getItem('aq_chart_controls_visible');
         const savedLocationHint = sessionStorage.getItem('aq_location_hint');
+        const savedAnalyticsData = sessionStorage.getItem('aq_analytics_data');
+        const savedAnalyticsCsv = sessionStorage.getItem('aq_analytics_csv');
         
         if (savedLocation) currentLocation = JSON.parse(savedLocation);
         if (savedData) allChartData = JSON.parse(savedData);
         if (savedMode) currentMode = savedMode;
+        
+        // Restore analytics data
+        if (savedAnalyticsData) window.analyticsData = JSON.parse(savedAnalyticsData);
+        if (savedAnalyticsCsv) window.analyticsCsvData = savedAnalyticsCsv;
         
         if (savedSpecies) {
             const speciesSelect = document.getElementById('species-select');
@@ -238,6 +328,16 @@ function loadSavedState() {
                     coordsDisplay.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon}`;
                 }
             }
+            
+            // Update analytics preset coordinates display if available
+            const analyticsSelectedLat = formFields.analyticsSelectedLat;
+            const analyticsSelectedLon = formFields.analyticsSelectedLon;
+            if (analyticsSelectedLat && analyticsSelectedLon) {
+                const analyticsPresetCoords = document.getElementById('analyticsPresetCoords');
+                if (analyticsPresetCoords) {
+                    analyticsPresetCoords.textContent = `Lat: ${analyticsSelectedLat}, Lon: ${analyticsSelectedLon}`;
+                }
+            }
         }
         
         // Restore chart controls visibility
@@ -258,6 +358,11 @@ function loadSavedState() {
         }
         
         if (savedMode) switchMode(savedMode);
+        
+        // Restore analytics table if on analytics page and data exists
+        if (window.analyticsData && (window.location.pathname.includes('analytics') || window.location.href.includes('analytics'))) {
+            setTimeout(() => restoreAnalyticsTable(), 100);
+        }
         
         // Only restore charts if data exists and user is on dashboard - but don't trigger loading
         if (allChartData && allChartData.length > 0 && document.getElementById('chart1')) {
@@ -331,15 +436,18 @@ function switchMode(mode) {
         if (form) form.style.display = m === mode ? 'block' : 'none';
     });
     
-    // Hide chart controls when switching to manual mode
+    // Hide chart controls for manual mode, show for location-based modes
     const chartControls = document.getElementById('chartDataControls');
-    if (chartControls && mode === 'manual') {
-        chartControls.style.display = 'none';
-        // Show empty states for all charts
-        for (let i = 1; i <= 4; i++) {
-            const emptyState = document.getElementById(`chart${i}EmptyState`);
-            if (emptyState) emptyState.style.display = 'block';
+    if (chartControls) {
+        if (mode === 'manual') {
+            chartControls.style.display = 'none';
+            // Show empty states for all charts in manual mode
+            for (let i = 1; i <= 4; i++) {
+                const emptyState = document.getElementById(`chart${i}EmptyState`);
+                if (emptyState) emptyState.style.display = 'block';
+            }
         }
+        // For location and preset modes, chart controls will be shown after successful prediction
     }
     
     // Save state after mode change
@@ -428,6 +536,111 @@ function refreshChartsData() {
 }
 window.refreshChartsData = refreshChartsData;
 
+function loadChartData(chartNum) {
+    const fromDate = document.getElementById(`fromDate${chartNum}`)?.value;
+    const toDate = document.getElementById(`toDate${chartNum}`)?.value;
+    
+    if (!fromDate || !toDate) {
+        alert('Please select both From and To dates for the chart');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        alert('From date cannot be later than To date');
+        return;
+    }
+    
+    if (!currentLocation.latitude || !currentLocation.longitude) {
+        alert('Please select a location first using GPS Coordinates or Select Location');
+        return;
+    }
+    
+    const btn = document.querySelector(`button[onclick="loadChartData(${chartNum})"]`);
+    if (btn) { 
+        btn.disabled = true; 
+        btn.textContent = 'Loading...'; 
+    }
+    
+    // Get chart-specific loading message
+    const chartNames = {
+        1: 'Combined Trends Chart',
+        2: 'Temperature Chart', 
+        3: 'Dissolved Oxygen Chart',
+        4: 'pH Level Chart'
+    };
+    
+    showLoading(`Loading ${chartNames[chartNum]} Data`);
+    updateLoadingStep('Fetching data for selected date range...', 30);
+    
+    // Load data specifically for this chart's date range
+    loadHistoricalDataForChart(currentLocation.latitude, currentLocation.longitude, fromDate, toDate, chartNum)
+        .then(() => {
+            updateLoadingStep('Data loaded successfully!', 100);
+            setTimeout(() => hideLoading(), 500);
+        })
+        .catch(err => {
+            alert('Failed to load data: ' + err.message);
+            hideLoading();
+        })
+        .finally(() => {
+            if (btn) { 
+                btn.disabled = false; 
+                btn.textContent = 'Load Data'; 
+            }
+        });
+}
+window.loadChartData = loadChartData;
+
+async function loadHistoricalDataForChart(lat, lon, startDate, endDate, chartNum) {
+    const latitude = lat || currentLocation.latitude || 11.0168;
+    const longitude = lon || currentLocation.longitude || 76.9558;
+    
+    try {
+        updateLoadingStep('Connecting to weather data API...', 30);
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        updateLoadingStep('Fetching historical weather data...', 50);
+        const res = await fetch(addCacheBuster(`/api/fetch-data?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}`));
+        
+        updateLoadingStep('Processing weather data...', 70);
+        const csvData = await res.json();
+        
+        if (csvData.error) { alert('Error loading data: ' + csvData.error); return; }
+        
+        if (csvData.data && csvData.data.length > 0) {
+            updateLoadingStep('Preparing chart visualization...', 85);
+            
+            // Store chart-specific data
+            const chartDataKey = `chart${chartNum}Data`;
+            window[chartDataKey] = csvData.data;
+            
+            // Update only the specific chart
+            updateLoadingStep('Rendering chart...', 95);
+            setTimeout(() => updateSingleChart(chartNum, csvData.data), 100);
+        } else {
+            alert('No data available for this location and date range.');
+        }
+    } catch (err) {
+        alert('Failed to load data: ' + err.message);
+    }
+}
+
+function updateSingleChart(chartNum, data) {
+    // Temporarily store the chart-specific data
+    const originalData = allChartData;
+    allChartData = data;
+    
+    // Update only the specific chart
+    updateChart(chartNum);
+    
+    // Restore original data for other charts
+    allChartData = originalData;
+    
+    // Store chart-specific data for future reference
+    const chartDataKey = `chart${chartNum}Data`;
+    window[chartDataKey] = data;
+}
+
 function updateAllCharts() {
     // Only update charts if data already exists, don't load new data
     if (allChartData && allChartData.length > 0) {
@@ -435,6 +648,8 @@ function updateAllCharts() {
             updateChart(i);
         }
     }
+    // Generate smart advisory when species changes
+    generateSmartAdvisory();
     // Save state after species change
     saveState();
 }
@@ -483,17 +698,21 @@ function createCultivationAnnotations(periods, labels, species) {
     // Create seasonal cultivation period indicators as additional datasets
     const cultivationDatasets = [];
     
-    periods.forEach((period, index) => {
-        // Create a dataset that shows seasonal cultivation periods as background areas
+    if (periods.length > 0) {
+        // Create one combined dataset for all cultivation periods
         const cultivationData = labels.map((label, labelIndex) => {
-            if (labelIndex >= period.start && labelIndex <= period.end) {
-                return 1; // Show cultivation season
-            }
-            return null;
+            // Check if this label index falls within any cultivation period
+            const isInCultivationPeriod = periods.some(period => 
+                labelIndex >= period.start && labelIndex <= period.end
+            );
+            return isInCultivationPeriod ? 1 : null;
         });
         
+        // Get season info from first period (they're all the same)
+        const seasonInfo = periods[0].season;
+        
         cultivationDatasets.push({
-            label: `${species.charAt(0).toUpperCase() + species.slice(1)} Season ${period.year} (${period.season})`,
+            label: `${species.charAt(0).toUpperCase() + species.slice(1)} Cultivation Season (${seasonInfo})`,
             data: cultivationData,
             backgroundColor: 'rgba(34, 197, 94, 0.15)',
             borderColor: 'rgba(34, 197, 94, 0.4)',
@@ -504,9 +723,170 @@ function createCultivationAnnotations(periods, labels, species) {
             yAxisID: 'cultivation',
             order: 10 // Put behind main data
         });
-    });
+    }
     
     return cultivationDatasets;
+}
+
+function generateSmartAdvisory() {
+    const speciesSelect = document.getElementById('species-select');
+    const species = speciesSelect ? speciesSelect.value : 'general';
+    const thresholds = speciesThresholds[species];
+    const advisoryDiv = document.getElementById('smartAdvisory');
+    
+    if (!advisoryDiv) return;
+    
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // 1-12
+    const currentDate = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    
+    let messages = [];
+    
+    // Check if we're in cultivation season
+    const isInSeason = isCurrentlyInCultivationSeason(currentMonth, thresholds);
+    const daysUntilSeason = getDaysUntilCultivationSeason(today, thresholds);
+    const daysUntilSeasonEnd = getDaysUntilSeasonEnd(today, thresholds);
+    
+    // Season-based advice
+    if (isInSeason) {
+        if (daysUntilSeasonEnd <= 30) {
+            messages.push({
+                type: 'warning',
+                text: `⚠️ HARVEST ALERT: ${species.charAt(0).toUpperCase() + species.slice(1)} cultivation season ends in ${daysUntilSeasonEnd} days. Plan your harvest soon!`
+            });
+        } else {
+            messages.push({
+                type: 'optimal',
+                text: `✅ OPTIMAL SEASON: Perfect time for ${species} cultivation! Season runs until ${thresholds.cultivationEnd}.`
+            });
+        }
+    } else {
+        if (daysUntilSeason <= 60) {
+            messages.push({
+                type: 'info',
+                text: `📅 PREPARE: ${species.charAt(0).toUpperCase() + species.slice(1)} cultivation season starts in ${daysUntilSeason} days (${thresholds.cultivationStart}). Start preparing your ponds!`
+            });
+        } else {
+            messages.push({
+                type: 'warning',
+                text: `❄️ OFF-SEASON: Not ideal time for ${species} cultivation. Best season: ${thresholds.cultivationStart} - ${thresholds.cultivationEnd}.`
+            });
+        }
+    }
+    
+    // Water quality advice based on latest prediction
+    if (lastPrediction && lastPrediction.predicted_values) {
+        const temp = lastPrediction.predicted_values.water_temp;
+        const do_val = lastPrediction.predicted_values.do;
+        const ph = lastPrediction.predicted_values.ph;
+        
+        const tempOK = temp >= thresholds.tempMin && temp <= thresholds.tempMax;
+        const doOK = do_val >= thresholds.doMin && do_val <= thresholds.doMax;
+        const phOK = ph >= thresholds.phMin && ph <= thresholds.phMax;
+        
+        if (tempOK && doOK && phOK) {
+            messages.push({
+                type: 'optimal',
+                text: `🌊 WATER QUALITY: Excellent! All parameters optimal for ${species} (Temp: ${temp}°C, DO: ${do_val} mg/L, pH: ${ph})`
+            });
+        } else {
+            let issues = [];
+            if (!tempOK) issues.push(`Temperature ${temp}°C (need ${thresholds.tempMin}-${thresholds.tempMax}°C)`);
+            if (!doOK) issues.push(`DO ${do_val} mg/L (need ${thresholds.doMin}-${thresholds.doMax} mg/L)`);
+            if (!phOK) issues.push(`pH ${ph} (need ${thresholds.phMin}-${thresholds.phMax})`);
+            
+            messages.push({
+                type: 'critical',
+                text: `⚠️ WATER ISSUES: ${issues.join(', ')}. Consider water treatment before stocking.`
+            });
+        }
+    }
+    
+    // Location-based advice
+    if (currentLocation.latitude && currentLocation.longitude) {
+        const climate = getClimateAdvice(currentLocation.latitude);
+        messages.push({
+            type: 'info',
+            text: `🌍 LOCATION: ${climate} Monitor weather patterns for optimal cultivation timing.`
+        });
+    }
+    
+    // Market timing advice
+    const marketAdvice = getMarketTimingAdvice(species, currentMonth);
+    if (marketAdvice) {
+        messages.push({
+            type: 'info',
+            text: marketAdvice
+        });
+    }
+    
+    // Render messages
+    let html = `<div style="margin-bottom: 0.5rem; font-weight: 600; color: var(--primary-color);">Advisory for ${currentDate}</div>`;
+    
+    messages.forEach(msg => {
+        html += `<div class="advisory-message advisory-${msg.type}">${msg.text}</div>`;
+    });
+    
+    advisoryDiv.innerHTML = html;
+}
+
+function isCurrentlyInCultivationSeason(currentMonth, thresholds) {
+    const start = thresholds.startMonth;
+    const end = thresholds.endMonth;
+    
+    if (start <= end) {
+        return currentMonth >= start && currentMonth <= end;
+    } else {
+        // Cross-year season (e.g., Oct-Apr)
+        return currentMonth >= start || currentMonth <= end;
+    }
+}
+
+function getDaysUntilCultivationSeason(today, thresholds) {
+    const currentYear = today.getFullYear();
+    const startMonth = thresholds.startMonth;
+    
+    let nextSeasonStart = new Date(currentYear, startMonth - 1, 1);
+    if (nextSeasonStart <= today) {
+        nextSeasonStart = new Date(currentYear + 1, startMonth - 1, 1);
+    }
+    
+    return Math.ceil((nextSeasonStart - today) / (1000 * 60 * 60 * 24));
+}
+
+function getDaysUntilSeasonEnd(today, thresholds) {
+    const currentYear = today.getFullYear();
+    const endMonth = thresholds.endMonth;
+    
+    let seasonEnd = new Date(currentYear, endMonth, 0); // Last day of end month
+    if (seasonEnd <= today) {
+        seasonEnd = new Date(currentYear + 1, endMonth, 0);
+    }
+    
+    return Math.ceil((seasonEnd - today) / (1000 * 60 * 60 * 24));
+}
+
+function getClimateAdvice(latitude) {
+    if (latitude > 23.5) return "Temperate climate - seasonal variations affect cultivation timing.";
+    if (latitude > -23.5) return "Tropical/subtropical climate - year-round cultivation possible with proper management.";
+    return "Southern climate - consider seasonal temperature variations.";
+}
+
+function getMarketTimingAdvice(species, currentMonth) {
+    const marketTiming = {
+        tilapia: { peak: [6, 7, 8], advice: "Peak demand in summer months" },
+        salmon: { peak: [11, 12, 1], advice: "High demand during winter holidays" },
+        catfish: { peak: [5, 6, 7], advice: "Popular during BBQ season" },
+        shrimp: { peak: [11, 12, 1, 2], advice: "Premium prices during holiday season" },
+        prawn: { peak: [11, 12, 1, 2], advice: "Festive season brings higher prices" },
+        carp: { peak: [10, 11, 12], advice: "Traditional harvest season" }
+    };
+    
+    const timing = marketTiming[species];
+    if (timing && timing.peak.includes(currentMonth)) {
+        return `💰 MARKET: ${timing.advice} - excellent timing for harvest!`;
+    }
+    return null;
 }
 
 function resetChartDateRange(chartNum) {
@@ -596,7 +976,12 @@ async function loadHistoricalData(lat, lon) {
 }
 
 function updateChart(chartNum) {
-    if (!allChartData || !allChartData.length) {
+    // Check if chart has its own specific data
+    const chartDataKey = `chart${chartNum}Data`;
+    const chartSpecificData = window[chartDataKey];
+    const dataToUse = chartSpecificData || allChartData;
+    
+    if (!dataToUse || !dataToUse.length) {
         // Show empty state if no data
         const emptyState = document.getElementById(`chart${chartNum}EmptyState`);
         if (emptyState) emptyState.style.display = 'block';
@@ -612,11 +997,11 @@ function updateChart(chartNum) {
     const canvas = document.getElementById(`chart${chartNum}`);
     if (!canvas) return;
 
-    let filtered = [...allChartData];
+    let filtered = [...dataToUse];
     if (fromInput && toInput && fromInput.value && toInput.value) {
         const from = new Date(fromInput.value + 'T00:00:00');
         const to = new Date(toInput.value + 'T23:59:59');
-        filtered = allChartData.filter(r => {
+        filtered = dataToUse.filter(r => {
             const d = new Date(r.datetime);
             return d >= from && d <= to;
         });
@@ -765,6 +1150,8 @@ async function handlePredictionResponse(data) {
         document.getElementById('riskLevel').textContent = risk.level;
         document.getElementById('riskMessage').textContent = risk.message;
     }
+    // Generate smart advisory after prediction
+    generateSmartAdvisory();
 }
 
 window.addEventListener('load', () => {
@@ -780,6 +1167,9 @@ window.addEventListener('load', () => {
             emptyState.style.display = 'block';
         }
     }
+    
+    // Generate initial smart advisory
+    setTimeout(() => generateSmartAdvisory(), 500);
 
     const predForm = document.getElementById('predictionForm');
     if (predForm) {
@@ -904,22 +1294,65 @@ window.addEventListener('load', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', () => {
-            if (!allChartData) { alert('No data available.'); return; }
-            const from = document.getElementById('csvFromDate') ? document.getElementById('csvFromDate').value : '';
-            const to = document.getElementById('csvToDate') ? document.getElementById('csvToDate').value : '';
-            let data = allChartData;
-            if (from && to) {
-                const f = new Date(from), t = new Date(to);
-                t.setHours(23,59,59,999);
-                data = allChartData.filter(r => { const d = new Date(r.datetime); return d >= f && d <= t; });
+            // Check if we're on analytics page and use analytics data
+            const isAnalyticsPage = window.location.pathname.includes('analytics') || window.location.href.includes('analytics');
+            
+            console.log('Download CSV clicked');
+            console.log('Current URL:', window.location.href);
+            console.log('Current pathname:', window.location.pathname);
+            console.log('Is analytics page:', isAnalyticsPage);
+            console.log('window.analyticsData:', window.analyticsData);
+            console.log('allChartData:', allChartData);
+            
+            const dataToDownload = isAnalyticsPage ? window.analyticsData : allChartData;
+            
+            if (!dataToDownload || !dataToDownload.length) { 
+                console.log('No data available for download');
+                alert(isAnalyticsPage ? 'No analytics data available. Please load data first.' : 'No data available.'); 
+                return; 
             }
-            if (!data.length) { alert('No data for selected range.'); return; }
+            
+            console.log('Data to download:', dataToDownload.length, 'rows');
+            
+            // For analytics page, use the loaded date range; for dashboard, use CSV date inputs
+            let data = dataToDownload;
+            let fromDate = '', toDate = '';
+            
+            if (isAnalyticsPage) {
+                // Analytics page - data is already filtered by the selected date range
+                fromDate = document.getElementById('analyticsFromDate')?.value || 'all';
+                toDate = document.getElementById('analyticsToDate')?.value || 'data';
+                console.log('Analytics date range:', fromDate, 'to', toDate);
+            } else {
+                // Dashboard page - apply CSV date filter if specified
+                const from = document.getElementById('csvFromDate') ? document.getElementById('csvFromDate').value : '';
+                const to = document.getElementById('csvToDate') ? document.getElementById('csvToDate').value : '';
+                if (from && to) {
+                    const f = new Date(from), t = new Date(to);
+                    t.setHours(23,59,59,999);
+                    data = allChartData.filter(r => { const d = new Date(r.datetime); return d >= f && d <= t; });
+                }
+                fromDate = from || 'all';
+                toDate = to || 'data';
+            }
+            
+            if (!data || !data.length) { 
+                console.log('No data after filtering');
+                alert('No data for selected range.'); 
+                return; 
+            }
+            
+            console.log('Final data for CSV:', data.length, 'rows');
+            
             let csv = 'DateTime,Air Temp,Humidity,Rain,Water Temp,DO,pH\n';
             data.forEach(r => { csv += `${r.datetime},${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; });
+            
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-            a.download = `water_quality_${from||'all'}_to_${to||'data'}.csv`;
+            a.download = `water_quality_${fromDate}_to_${toDate}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            
+            console.log('CSV download initiated');
         });
     }
 

@@ -28,16 +28,15 @@
             <p class="page-subtitle">Comprehensive data analysis and historical trends</p>
 
             <div class="panel">
-                <h3>Location Selection</h3>
+                <h3>Location & Data Loading</h3>
                 <div class="input-group">
                     <label>Select Location for Data Analysis</label>
                     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                         <input type="number" id="analyticsLatitude" placeholder="Latitude" step="0.00001" class="form-control" style="flex: 1; min-width: 150px;">
                         <input type="number" id="analyticsLongitude" placeholder="Longitude" step="0.00001" class="form-control" style="flex: 1; min-width: 150px;">
                         <button type="button" class="btn btn-secondary" onclick="getAnalyticsLocation()">Use My Location</button>
-                        <button type="button" class="btn btn-primary" onclick="loadAnalyticsData()">Load Data</button>
                     </div>
-                    <span class="hint">Enter coordinates or use your current location to load historical data</span>
+                    <span class="hint">Enter coordinates or use your current location</span>
                 </div>
                 
                 <div class="input-group">
@@ -50,19 +49,27 @@
                         <span class="hint" id="analyticsPresetCoords">Select a location from dropdown</span>
                     </div>
                 </div>
+                
+                <div class="input-group">
+                    <label>Select Date Range</label>
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <input type="date" id="analyticsFromDate" class="form-control" style="flex: 1; min-width: 150px;">
+                        <span style="font-weight: 500;">to</span>
+                        <input type="date" id="analyticsToDate" class="form-control" style="flex: 1; min-width: 150px;">
+                        <button type="button" class="btn btn-primary" onclick="loadAnalyticsData()" style="min-width: 120px;">Load Data</button>
+                    </div>
+                    <span class="hint">Select location and date range, then click Load Data</span>
+                </div>
             </div>
 
             <div class="panel">
                 <div class="panel-header">
-                    <h3>Export Historical Data</h3>
+                    <h3>Export Data</h3>
                     <div class="export-controls">
-                        <label>From:</label>
-                        <input type="date" id="csvFromDate" class="date-input">
-                        <label>To:</label>
-                        <input type="date" id="csvToDate" class="date-input">
                         <button id="downloadBtn" class="btn btn-secondary">Download CSV</button>
                     </div>
                 </div>
+                <p>Export the loaded data as CSV file. The export will include all data currently displayed in the table below.</p>
             </div>
 
             <div class="panel">

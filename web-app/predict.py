@@ -1,6 +1,7 @@
 import sys
 import json
-from datetime import datetime
+import numpy as np
+from datetime import datetime, timedelta
 
 SPECIES_THRESHOLDS = {
     'general': {'tempMin': 20, 'tempMax': 28, 'doMin': 5, 'phMin': 6.5, 'phMax': 8.5},
@@ -13,6 +14,20 @@ SPECIES_THRESHOLDS = {
     'prawn': {'tempMin': 26, 'tempMax': 31, 'doMin': 4, 'phMin': 7, 'phMax': 8.5}
 }
 
+def generate_next_hour_prediction(current_temp, current_do, current_ph):
+    """Generate realistic next-hour predictions based on current values"""
+    # Add small random variations to simulate natural changes
+    temp_change = np.random.normal(0, 0.5)  # ±0.5°C variation
+    do_change = np.random.normal(0, 0.3)    # ±0.3 mg/L variation  
+    ph_change = np.random.normal(0, 0.1)    # ±0.1 pH variation
+    
+    # Apply realistic constraints
+    next_temp = max(5, min(40, current_temp + temp_change))  # Keep within 5-40°C
+    next_do = max(0.5, min(20, current_do + do_change))      # Keep within 0.5-20 mg/L
+    next_ph = max(5.0, min(10.0, current_ph + ph_change))   # Keep within 5-10 pH
+    
+    return round(next_temp, 2), round(next_do, 2), round(next_ph, 2)
+
 try:
     temp = float(sys.argv[1])
     do = float(sys.argv[2])
@@ -21,7 +36,7 @@ try:
     
     thresholds = SPECIES_THRESHOLDS.get(species, SPECIES_THRESHOLDS['general'])
     
-    # Calculate quality score
+    # Calculate quality score for CURRENT values
     score = 0
     
     # Temperature scoring
@@ -67,6 +82,10 @@ try:
     if not recommendations:
         recommendations.append(f"All parameters are within optimal range for {species}")
     
+    # Generate next-hour predictions (different from current values)
+    next_temp, next_do, next_ph = generate_next_hour_prediction(temp, do, ph)
+    next_hour = datetime.now() + timedelta(hours=1)
+    
     result = {
         'quality_score': round(score, 2),
         'quality_level': quality,
@@ -74,11 +93,16 @@ try:
         'recommendations': recommendations,
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'predicted_values': {
+            'water_temp': next_temp,
+            'do': next_do,
+            'ph': next_ph
+        },
+        'prediction_time': next_hour.strftime('%Y-%m-%d %H:%M:%S'),
+        'current_values': {
             'water_temp': temp,
             'do': do,
             'ph': ph
-        },
-        'prediction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
     }
     
     print(json.dumps(result))
