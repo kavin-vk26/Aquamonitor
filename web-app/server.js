@@ -59,11 +59,14 @@ function processHTMLContent(htmlContent, currentPage) {
         // Update CSS and JS with fresh timestamps
         .replace(/styles\.css(\?v=[^"\s]*)?/g, `styles.css?v=${currentTime}&r=${random}`)
         .replace(/script\.js(\?v=[^"\s]*)?/g, `script.js?v=${currentTime}&r=${random}`)
-        // Update navigation links to clean URLs (not versioned)
-        .replace(/href="home\.html"/g, `href="/home.html"`)
-        .replace(/href="dashboard\.html"/g, `href="/dashboard.html"`)
-        .replace(/href="analytics\.html"/g, `href="/analytics.html"`)
-        .replace(/href="about\.html"/g, `href="/about.html"`)
+        // Update navigation links to versioned pages
+        .replace(/href="home\.html"/g, `href="/${VERSIONED_PAGES.home}"`)
+        .replace(/href="dashboard\.html"/g, `href="/${VERSIONED_PAGES.dashboard}"`)
+        .replace(/href="analytics\.html"/g, `href="/${VERSIONED_PAGES.analytics}"`)
+        .replace(/href="about\.html"/g, `href="/${VERSIONED_PAGES.about}"`)
+        // Update active class
+        .replace(/class="active"/g, '')
+        .replace(new RegExp(`href="/${VERSIONED_PAGES[currentPage]}"`), `href="/${VERSIONED_PAGES[currentPage]}" class="active"`)
         // Replace version placeholders
         .replace(/{{VERSION}}/g, VERSION)
         .replace(/{{TIMESTAMP}}/g, currentTime);

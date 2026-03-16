@@ -30,7 +30,7 @@
                     
                     <div class="input-group">
                         <label>Select Species</label>
-                        <select id="species-select" class="form-control" onchange="updateAllCharts()">
+                        <select id="species-select" class="form-control">
                             <option value="general">General Fish</option>
                             <option value="tilapia">Tilapia</option>
                             <option value="catfish">Catfish</option>
@@ -170,7 +170,13 @@
                             <input type="date" id="toDate1" class="form-control-sm date-input" onchange="updateChart(1)">
                         </div>
                     </div>
-                    <div style="position:relative;height:500px;"><canvas id="chart1"></canvas></div>
+                    <div style="position:relative;height:500px;">
+                        <canvas id="chart1"></canvas>
+                        <div id="chart1EmptyState" class="chart-empty-state">
+                            <p>No chart data loaded</p>
+                            <p>Use GPS Coordinates or Select Location, then click "Load Chart Data" to view historical trends</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel chart-panel">
@@ -183,7 +189,13 @@
                             <input type="date" id="toDate2" class="form-control-sm date-input" onchange="updateChart(2)">
                         </div>
                     </div>
-                    <div style="position:relative;height:300px;"><canvas id="chart2"></canvas></div>
+                    <div style="position:relative;height:300px;">
+                        <canvas id="chart2"></canvas>
+                        <div id="chart2EmptyState" class="chart-empty-state">
+                            <p>No temperature data</p>
+                            <p>Load chart data to view temperature trends</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel chart-panel">
@@ -196,7 +208,13 @@
                             <input type="date" id="toDate3" class="form-control-sm date-input" onchange="updateChart(3)">
                         </div>
                     </div>
-                    <div style="position:relative;height:300px;"><canvas id="chart3"></canvas></div>
+                    <div style="position:relative;height:300px;">
+                        <canvas id="chart3"></canvas>
+                        <div id="chart3EmptyState" class="chart-empty-state">
+                            <p>No oxygen data</p>
+                            <p>Load chart data to view dissolved oxygen trends</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel chart-panel">
@@ -209,7 +227,13 @@
                             <input type="date" id="toDate4" class="form-control-sm date-input" onchange="updateChart(4)">
                         </div>
                     </div>
-                    <div style="position:relative;height:300px;"><canvas id="chart4"></canvas></div>
+                    <div style="position:relative;height:300px;">
+                        <canvas id="chart4"></canvas>
+                        <div id="chart4EmptyState" class="chart-empty-state">
+                            <p>No pH data</p>
+                            <p>Load chart data to view pH level trends</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel">

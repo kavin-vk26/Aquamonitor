@@ -763,6 +763,34 @@ body {
     height: 500px !important;
 }
 
+/* Chart Empty States */
+.chart-empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-muted);
+    z-index: 1;
+    background: var(--background);
+    padding: 2rem;
+    border-radius: 8px;
+    border: 2px dashed var(--border);
+    max-width: 80%;
+}
+
+.chart-empty-state p:first-child {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.chart-empty-state p:last-child {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
 /* Chart Data Controls */
 .chart-data-controls {
     background: var(--background);

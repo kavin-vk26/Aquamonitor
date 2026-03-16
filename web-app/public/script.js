@@ -113,14 +113,14 @@ let charts = [null, null, null, null];
 let lastPrediction = null;
 
 const speciesThresholds = {
-    general: { tempMin: 20, tempMax: 28, doMin: 5, doMax: 12, phMin: 6.5, phMax: 8.5 },
-    tilapia: { tempMin: 25, tempMax: 32, doMin: 3, doMax: 15, phMin: 6, phMax: 9 },
-    catfish: { tempMin: 24, tempMax: 30, doMin: 4, doMax: 12, phMin: 6.5, phMax: 8.5 },
-    salmon: { tempMin: 10, tempMax: 18, doMin: 7, doMax: 14, phMin: 6.5, phMax: 8 },
-    trout: { tempMin: 10, tempMax: 16, doMin: 7, doMax: 14, phMin: 6.5, phMax: 8 },
-    carp: { tempMin: 20, tempMax: 28, doMin: 4, doMax: 12, phMin: 6.5, phMax: 9 },
-    shrimp: { tempMin: 26, tempMax: 32, doMin: 4, doMax: 10, phMin: 7, phMax: 8.5 },
-    prawn: { tempMin: 26, tempMax: 31, doMin: 4, doMax: 10, phMin: 7, phMax: 8.5 }
+    general: { tempMin: 20, tempMax: 28, doMin: 5, doMax: 12, phMin: 6.5, phMax: 8.5, cultivationStart: 'March', cultivationEnd: 'October', startMonth: 3, endMonth: 10 },
+    tilapia: { tempMin: 25, tempMax: 32, doMin: 3, doMax: 15, phMin: 6, phMax: 9, cultivationStart: 'April', cultivationEnd: 'September', startMonth: 4, endMonth: 9 },
+    catfish: { tempMin: 24, tempMax: 30, doMin: 4, doMax: 12, phMin: 6.5, phMax: 8.5, cultivationStart: 'May', cultivationEnd: 'September', startMonth: 5, endMonth: 9 },
+    salmon: { tempMin: 10, tempMax: 18, doMin: 7, doMax: 14, phMin: 6.5, phMax: 8, cultivationStart: 'October', cultivationEnd: 'April', startMonth: 10, endMonth: 4 },
+    trout: { tempMin: 10, tempMax: 16, doMin: 7, doMax: 14, phMin: 6.5, phMax: 8, cultivationStart: 'October', cultivationEnd: 'March', startMonth: 10, endMonth: 3 },
+    carp: { tempMin: 20, tempMax: 28, doMin: 4, doMax: 12, phMin: 6.5, phMax: 9, cultivationStart: 'April', cultivationEnd: 'October', startMonth: 4, endMonth: 10 },
+    shrimp: { tempMin: 26, tempMax: 32, doMin: 4, doMax: 10, phMin: 7, phMax: 8.5, cultivationStart: 'May', cultivationEnd: 'August', startMonth: 5, endMonth: 8 },
+    prawn: { tempMin: 26, tempMax: 31, doMin: 4, doMax: 10, phMin: 7, phMax: 8.5, cultivationStart: 'June', cultivationEnd: 'September', startMonth: 6, endMonth: 9 }
 };
 
 const indianCities = [
@@ -259,11 +259,16 @@ function loadSavedState() {
         
         if (savedMode) switchMode(savedMode);
         
-        // Restore charts if data exists
+        // Only restore charts if data exists and user is on dashboard - but don't trigger loading
         if (allChartData && allChartData.length > 0 && document.getElementById('chart1')) {
+            // Just update the charts with existing data, no loading
             setTimeout(() => {
-                for (let i = 1; i <= 4; i++) updateChart(i);
-            }, 500);
+                for (let i = 1; i <= 4; i++) {
+                    const emptyState = document.getElementById(`chart${i}EmptyState`);
+                    if (emptyState) emptyState.style.display = 'none';
+                    updateChart(i);
+                }
+            }, 100);
         }
     } catch (e) { console.error('Load state error:', e); }
 }
@@ -330,6 +335,11 @@ function switchMode(mode) {
     const chartControls = document.getElementById('chartDataControls');
     if (chartControls && mode === 'manual') {
         chartControls.style.display = 'none';
+        // Show empty states for all charts
+        for (let i = 1; i <= 4; i++) {
+            const emptyState = document.getElementById(`chart${i}EmptyState`);
+            if (emptyState) emptyState.style.display = 'block';
+        }
     }
     
     // Save state after mode change
@@ -389,20 +399,9 @@ function applyCommonDateRange() {
         const t = document.getElementById(`toDate${i}`);
         if (f && t) { f.value = fromDate; t.value = toDate; }
     }
-    if (!allChartData || !allChartData.length) {
-        loadHistoricalData(currentLocation.latitude || 11.0168, currentLocation.longitude || 76.9558);
-    } else {
-        // Check if requested range is outside fetched data range
-        const fetchedDates = allChartData.map(r => new Date(r.datetime));
-        const fetchedMin = new Date(Math.min(...fetchedDates));
-        const fetchedMax = new Date(Math.max(...fetchedDates));
-        const reqFrom = new Date(fromDate);
-        const reqTo = new Date(toDate);
-        if (reqFrom < fetchedMin || reqTo > fetchedMax) {
-            loadHistoricalData(currentLocation.latitude || 11.0168, currentLocation.longitude || 76.9558);
-        } else {
-            for (let i = 1; i <= 4; i++) updateChart(i);
-        }
+    // Only update charts if data already exists, don't fetch new data
+    if (allChartData && allChartData.length > 0) {
+        for (let i = 1; i <= 4; i++) updateChart(i);
     }
     // Save state after date range change
     saveState();
@@ -428,6 +427,87 @@ function refreshChartsData() {
         });
 }
 window.refreshChartsData = refreshChartsData;
+
+function updateAllCharts() {
+    // Only update charts if data already exists, don't load new data
+    if (allChartData && allChartData.length > 0) {
+        for (let i = 1; i <= 4; i++) {
+            updateChart(i);
+        }
+    }
+    // Save state after species change
+    saveState();
+}
+window.updateAllCharts = updateAllCharts;
+
+function findCultivationPeriods(data, thresholds) {
+    // This function now finds seasonal cultivation periods based on months
+    const periods = [];
+    const startMonth = thresholds.startMonth;
+    const endMonth = thresholds.endMonth;
+    
+    // Find all years in the data
+    const years = [...new Set(data.map(point => new Date(point.datetime).getFullYear()))];
+    
+    years.forEach(year => {
+        let startDate, endDate;
+        
+        if (startMonth <= endMonth) {
+            // Normal season (e.g., April to September)
+            startDate = new Date(year, startMonth - 1, 1);
+            endDate = new Date(year, endMonth, 0); // Last day of end month
+        } else {
+            // Cross-year season (e.g., October to April)
+            startDate = new Date(year, startMonth - 1, 1);
+            endDate = new Date(year + 1, endMonth, 0); // Last day of end month next year
+        }
+        
+        // Find corresponding indices in the data
+        const startIndex = data.findIndex(point => new Date(point.datetime) >= startDate);
+        const endIndex = data.findIndex(point => new Date(point.datetime) > endDate);
+        
+        if (startIndex !== -1) {
+            periods.push({
+                start: startIndex,
+                end: endIndex !== -1 ? endIndex - 1 : data.length - 1,
+                year: year,
+                season: `${thresholds.cultivationStart} - ${thresholds.cultivationEnd}`
+            });
+        }
+    });
+    
+    return periods;
+}
+
+function createCultivationAnnotations(periods, labels, species) {
+    // Create seasonal cultivation period indicators as additional datasets
+    const cultivationDatasets = [];
+    
+    periods.forEach((period, index) => {
+        // Create a dataset that shows seasonal cultivation periods as background areas
+        const cultivationData = labels.map((label, labelIndex) => {
+            if (labelIndex >= period.start && labelIndex <= period.end) {
+                return 1; // Show cultivation season
+            }
+            return null;
+        });
+        
+        cultivationDatasets.push({
+            label: `${species.charAt(0).toUpperCase() + species.slice(1)} Season ${period.year} (${period.season})`,
+            data: cultivationData,
+            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+            borderColor: 'rgba(34, 197, 94, 0.4)',
+            borderWidth: 1,
+            fill: true,
+            stepped: true,
+            pointRadius: 0,
+            yAxisID: 'cultivation',
+            order: 10 // Put behind main data
+        });
+    });
+    
+    return cultivationDatasets;
+}
 
 function resetChartDateRange(chartNum) {
     const today = new Date();
@@ -516,7 +596,16 @@ async function loadHistoricalData(lat, lon) {
 }
 
 function updateChart(chartNum) {
-    if (!allChartData || !allChartData.length) return;
+    if (!allChartData || !allChartData.length) {
+        // Show empty state if no data
+        const emptyState = document.getElementById(`chart${chartNum}EmptyState`);
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+    }
+
+    // Hide empty state when showing chart
+    const emptyState = document.getElementById(`chart${chartNum}EmptyState`);
+    if (emptyState) emptyState.style.display = 'none';
 
     const fromInput = document.getElementById(`fromDate${chartNum}`);
     const toInput = document.getElementById(`toDate${chartNum}`);
@@ -532,7 +621,13 @@ function updateChart(chartNum) {
             return d >= from && d <= to;
         });
     }
-    if (!filtered.length) { console.warn(`No data for chart ${chartNum} in selected range`); return; }
+    if (!filtered.length) { 
+        console.warn(`No data for chart ${chartNum} in selected range`);
+        // Show empty state if no data in range
+        const emptyState = document.getElementById(`chart${chartNum}EmptyState`);
+        if (emptyState) emptyState.style.display = 'block';
+        return; 
+    }
 
     const first = new Date(filtered[0].datetime);
     const last = new Date(filtered[filtered.length - 1].datetime);
@@ -552,13 +647,20 @@ function updateChart(chartNum) {
     const speciesSelect = document.getElementById('species-select');
     const species = speciesSelect ? speciesSelect.value : 'general';
     const th = speciesThresholds[species];
+    
+    // Find optimal cultivation periods (when all parameters are within range)
+    const cultivationPeriods = findCultivationPeriods(sampled, th);
 
     if (chartNum === 1) {
+        // Combined chart with multiple parameters and cultivation periods
+        const cultivationDatasets = createCultivationAnnotations(cultivationPeriods, labels, species);
+        
         charts[0] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels,
                 datasets: [
+                    ...cultivationDatasets,
                     { label: 'Water Temp (°C)', data: sampled.map(r => r.water_temp), borderColor: '#FF6384', backgroundColor: 'rgba(255,99,132,0.1)', yAxisID: 'y', tension: 0.4, pointRadius: 0 },
                     { label: 'DO (mg/L)', data: sampled.map(r => r.do), borderColor: '#36A2EB', backgroundColor: 'rgba(54,162,235,0.1)', yAxisID: 'y1', tension: 0.4, pointRadius: 0 },
                     { label: 'pH', data: sampled.map(r => r.ph), borderColor: '#FFCE56', backgroundColor: 'rgba(255,206,86,0.1)', yAxisID: 'y2', tension: 0.4, pointRadius: 0 }
@@ -567,12 +669,23 @@ function updateChart(chartNum) {
             options: {
                 responsive: true, maintainAspectRatio: false,
                 animation: false,
-                plugins: { legend: { position: 'top' } },
+                plugins: { 
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            filter: function(legendItem, chartData) {
+                                // Show cultivation periods in legend but make them distinguishable
+                                return true;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } },
                     y: { position: 'left', title: { display: true, text: 'Temp (°C)' } },
                     y1: { position: 'right', title: { display: true, text: 'DO (mg/L)' }, grid: { drawOnChartArea: false } },
-                    y2: { position: 'right', title: { display: true, text: 'pH' }, grid: { drawOnChartArea: false } }
+                    y2: { position: 'right', title: { display: true, text: 'pH' }, grid: { drawOnChartArea: false } },
+                    cultivation: { display: false, min: 0, max: 1 }
                 }
             }
         });
@@ -583,23 +696,46 @@ function updateChart(chartNum) {
             { label: 'pH', data: sampled.map(r => r.ph), color: '#FFCE56', bg: 'rgba(255,206,86,0.1)', axis: 'pH', min: th.phMin, max: th.phMax }
         ];
         const c = cfgs[chartNum - 1];
+        
+        // Get cultivation period datasets
+        const cultivationDatasets = createCultivationAnnotations(cultivationPeriods, labels, species);
+        
+        // Create datasets with main data, threshold lines, and cultivation periods
+        const datasets = [
+            ...cultivationDatasets,
+            { label: c.label, data: c.data, borderColor: c.color, backgroundColor: c.bg, tension: 0.4, fill: true, pointRadius: 0 },
+            { label: `Min (${c.min})`, data: Array(labels.length).fill(c.min), borderColor: c.color, backgroundColor: 'transparent', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, fill: false },
+            { label: `Max (${c.max})`, data: Array(labels.length).fill(c.max), borderColor: c.color, backgroundColor: 'transparent', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, fill: false }
+        ];
+        
         charts[chartNum - 1] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels,
-                datasets: [{ label: c.label, data: c.data, borderColor: c.color, backgroundColor: c.bg, tension: 0.4, fill: true, pointRadius: 0 }]
+                datasets: datasets
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 animation: false,
-                plugins: { legend: { position: 'top' } },
+                plugins: { 
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            filter: function(legendItem, chartData) {
+                                // Hide threshold lines from legend but show cultivation periods
+                                return !legendItem.text.includes('Min (') && !legendItem.text.includes('Max (');
+                            }
+                        }
+                    }
+                },
                 scales: {
                     x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } },
                     y: {
                         title: { display: true, text: c.axis },
-                        suggestedMin: Math.min(...c.data) - (chartNum === 4 ? 0.5 : 1),
-                        suggestedMax: Math.max(...c.data) + (chartNum === 4 ? 0.5 : 1)
-                    }
+                        suggestedMin: Math.min(Math.min(...c.data), c.min) - (chartNum === 4 ? 0.5 : 1),
+                        suggestedMax: Math.max(Math.max(...c.data), c.max) + (chartNum === 4 ? 0.5 : 1)
+                    },
+                    cultivation: { display: false, min: 0, max: 1 }
                 }
             }
         });
@@ -632,39 +768,18 @@ async function handlePredictionResponse(data) {
 }
 
 window.addEventListener('load', () => {
-    // Force refresh if coming from cache
-    const perfEntries = performance.getEntriesByType('navigation');
-    if (perfEntries.length > 0 && perfEntries[0].type === 'back_forward') {
-        window.location.reload(true);
-        return;
-    }
-    
-    // Check if this is a cached version by looking at load time
-    const loadTime = performance.timing.responseEnd - performance.timing.requestStart;
-    if (loadTime < 50) { // Very fast load suggests cache
-        console.log('Detected cached load, forcing refresh...');
-        window.location.reload(true);
-        return;
-    }
-    
-    // Add periodic version check
-    setInterval(() => {
-        fetch(addCacheBuster('/dashboard.html'), { method: 'HEAD' })
-            .then(response => {
-                const serverTimestamp = response.headers.get('X-Timestamp');
-                const currentTimestamp = sessionStorage.getItem('page_timestamp');
-                
-                if (currentTimestamp && serverTimestamp && serverTimestamp !== currentTimestamp) {
-                    console.log('New version detected, refreshing...');
-                    sessionStorage.setItem('page_timestamp', serverTimestamp);
-                    window.location.reload(true);
-                }
-            })
-            .catch(err => console.log('Version check failed:', err));
-    }, 30000); // Check every 30 seconds
+    console.log('Dashboard page loaded - no automatic data fetching');
     
     loadSavedState();
     initializeDateInputs();
+    
+    // Initialize empty states for charts
+    for (let i = 1; i <= 4; i++) {
+        const emptyState = document.getElementById(`chart${i}EmptyState`);
+        if (emptyState && (!allChartData || !allChartData.length)) {
+            emptyState.style.display = 'block';
+        }
+    }
 
     const predForm = document.getElementById('predictionForm');
     if (predForm) {
@@ -689,9 +804,6 @@ window.addEventListener('load', () => {
                 
                 updateLoadingStep('Analyzing results and generating recommendations...', 80);
                 await handlePredictionResponse(await res.json());
-                
-                updateLoadingStep('Loading historical data for charts...', 90);
-                await loadHistoricalData(currentLocation.latitude, currentLocation.longitude);
                 
                 updateLoadingStep('Complete!', 100);
                 await new Promise(resolve => setTimeout(resolve, 300));
@@ -742,9 +854,6 @@ window.addEventListener('load', () => {
                     if (hint) hint.textContent = `Charts will show data for coordinates: ${lat}, ${lon}`;
                 }
                 
-                updateLoadingStep('Loading historical data for visualization...', 90);
-                await loadHistoricalData(lat, lon);
-                
                 updateLoadingStep('Analysis complete!', 100);
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
@@ -785,8 +894,6 @@ window.addEventListener('load', () => {
                     if (hint) hint.textContent = `Charts will show data for: ${locationName} (${lat}, ${lon})`;
                 }
                 
-                await loadHistoricalData(lat, lon);
-                
                 // Save state after successful prediction
                 saveState();
             } catch (err) { alert('Error: ' + err.message); }
@@ -816,18 +923,6 @@ window.addEventListener('load', () => {
         });
     }
 
-    // If on dashboard, load data
-    if (document.getElementById('chart1')) {
-        // Don't automatically load data if we have saved state
-        if (!allChartData || !allChartData.length) {
-            // Only load default data if no saved state exists
-            const hasAnyState = sessionStorage.getItem('aq_location') || 
-                               sessionStorage.getItem('aq_data') || 
-                               sessionStorage.getItem('aq_prediction');
-            
-            if (!hasAnyState) {
-                loadHistoricalData(currentLocation.latitude, currentLocation.longitude);
-            }
-        }
-    }
+    // Dashboard and analytics pages - no automatic data loading
+    // Data will only load when user clicks Fetch/Predict buttons
 });
