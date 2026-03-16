@@ -80,6 +80,24 @@ function loadAnalyticsData() {
     const fromDate = document.getElementById('analyticsFromDate')?.value || '';
     const toDate = document.getElementById('analyticsToDate')?.value || '';
     
+    // Show coordinate preview
+    const preview = document.getElementById('coordinatePreview');
+    const previewCoords = document.getElementById('previewCoords');
+    if (preview && previewCoords && lat && lon) {
+        const manualLat = document.getElementById('analyticsLatitude').value;
+        const manualLon = document.getElementById('analyticsLongitude').value;
+        const selectedLocation = document.getElementById('analyticsLocationSearch').value;
+        
+        if (manualLat && manualLon) {
+            previewCoords.textContent = `Manual coordinates (${lat}, ${lon})`;
+        } else if (selectedLocation) {
+            previewCoords.textContent = `${selectedLocation} (${lat}, ${lon})`;
+        } else {
+            previewCoords.textContent = `Coordinates (${lat}, ${lon})`;
+        }
+        preview.style.display = 'block';
+    }
+    
     if (!lat || !lon) {
         alert('Please enter coordinates or select a location');
         return;
@@ -436,6 +454,9 @@ function switchMode(mode) {
         if (form) form.style.display = m === mode ? 'block' : 'none';
     });
     
+    // Clear charts and show appropriate empty states when switching modes
+    clearChartsOnModeSwitch(mode);
+    
     // Hide chart controls for manual mode, show for location-based modes
     const chartControls = document.getElementById('chartDataControls');
     if (chartControls) {
@@ -452,6 +473,34 @@ function switchMode(mode) {
     
     // Save state after mode change
     saveState();
+}
+
+function clearChartsOnModeSwitch(mode) {
+    // Destroy existing charts
+    for (let i = 0; i < 4; i++) {
+        if (charts[i]) {
+            charts[i].destroy();
+            charts[i] = null;
+        }
+    }
+    
+    // Show empty states for all charts
+    for (let i = 1; i <= 4; i++) {
+        const canvas = document.getElementById(`chart${i}`);
+        const emptyState = document.getElementById(`chart${i}EmptyState`);
+        if (canvas) canvas.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'block';
+    }
+    
+    // Clear chart data if switching to manual mode
+    if (mode === 'manual') {
+        allChartData = null;
+        // Clear chart-specific data
+        for (let i = 1; i <= 4; i++) {
+            delete window[`chart${i}Data`];
+        }
+        saveState();
+    }
 }
 
 function updateChartEmptyStates(mode) {

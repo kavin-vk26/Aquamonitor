@@ -806,6 +806,64 @@ body {
     width: 100% !important;
 }
 
+.chart-empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-secondary);
+    background: rgba(249, 250, 251, 0.9);
+    padding: 2rem;
+    border-radius: 8px;
+    border: 2px dashed var(--border);
+    max-width: 80%;
+}
+
+.chart-empty-state p:first-child {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.chart-empty-state p:last-child {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.advisory-message {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.advisory-optimal {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+}
+
+.advisory-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+}
+
+.advisory-critical {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+.advisory-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
+}
+
 #chart1 {
     height: 500px !important;
 }
