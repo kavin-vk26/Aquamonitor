@@ -441,17 +441,46 @@ function switchMode(mode) {
     if (chartControls) {
         if (mode === 'manual') {
             chartControls.style.display = 'none';
-            // Show empty states for all charts in manual mode
-            for (let i = 1; i <= 4; i++) {
-                const emptyState = document.getElementById(`chart${i}EmptyState`);
-                if (emptyState) emptyState.style.display = 'block';
-            }
+            // Update empty state messages for manual mode
+            updateChartEmptyStates('manual');
+        } else {
+            // Update empty state messages for location modes
+            updateChartEmptyStates('location');
         }
         // For location and preset modes, chart controls will be shown after successful prediction
     }
     
     // Save state after mode change
     saveState();
+}
+
+function updateChartEmptyStates(mode) {
+    const emptyStates = {
+        manual: {
+            chart1: { title: '📊 Historical Trends Chart', message: 'This shows location-based historical trends. Your manual analysis appears in the sidebar panels.' },
+            chart2: { title: '🌡️ Temperature History', message: 'Historical temperature trends require location data. Your current temperature analysis is in the sidebar.' },
+            chart3: { title: '💨 Oxygen Level History', message: 'Historical dissolved oxygen trends require location data. Your current DO analysis is in the sidebar.' },
+            chart4: { title: '⚗️ pH Level History', message: 'Historical pH trends require location data. Your current pH analysis is in the sidebar.' }
+        },
+        location: {
+            chart1: { title: '📊 Historical Trends Chart', message: 'Select a location and date range, then click "Load Data" to view historical trends.' },
+            chart2: { title: '🌡️ Temperature Trends', message: 'Click "Load Data" to view temperature history for your selected location.' },
+            chart3: { title: '💨 Oxygen Level Trends', message: 'Click "Load Data" to view dissolved oxygen history for your selected location.' },
+            chart4: { title: '⚗️ pH Level Trends', message: 'Click "Load Data" to view pH history for your selected location.' }
+        }
+    };
+    
+    const states = emptyStates[mode];
+    for (let i = 1; i <= 4; i++) {
+        const emptyState = document.getElementById(`chart${i}EmptyState`);
+        if (emptyState && states[`chart${i}`]) {
+            emptyState.innerHTML = `
+                <p>${states[`chart${i}`].title}</p>
+                <p>${states[`chart${i}`].message}</p>
+            `;
+            emptyState.style.display = 'block';
+        }
+    }
 }
 
 function getLocation() {
