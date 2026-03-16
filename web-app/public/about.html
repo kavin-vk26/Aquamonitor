@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>AquaMonitor - About</title>
-    <link rel="stylesheet" href="styles.css?v=2.0">
+    <link rel="stylesheet" href="styles.css?v=1.0">
 </head>
 <body>
     <header class="header">
@@ -25,64 +25,92 @@
     <main class="about-main">
         <div class="container">
             <h1>About AquaMonitor</h1>
-            <p class="page-subtitle">Advanced AI-powered water quality monitoring for aquaculture</p>
+            <p class="page-subtitle">Revolutionary LSTM-based water quality prediction system for aquaculture</p>
 
             <div class="panel">
-                <h2>Our Technology</h2>
-                <p>AquaMonitor utilizes state-of-the-art LSTM (Long Short-Term Memory) neural networks to predict water quality parameters with unprecedented accuracy. Our universal model is trained on extensive historical weather and water quality data, enabling reliable predictions for aquaculture operations worldwide.</p>
+                <h2>System Overview</h2>
+                <p>AquaMonitor is a professional-grade water quality monitoring system designed specifically for the aquaculture industry. Using advanced LSTM neural networks and climate-agnostic modeling, our system provides accurate water quality predictions for any location worldwide.</p>
             </div>
 
             <div class="panel">
                 <h2>Key Capabilities</h2>
                 <div class="capabilities-grid">
                     <div class="capability-item">
-                        <h3>Real-Time Monitoring</h3>
-                        <p>Continuous assessment of critical water quality parameters including temperature, dissolved oxygen, and pH levels.</p>
+                        <h3>Universal LSTM Model</h3>
+                        <p>Single model works globally without location-specific training using physics-based water quality formulas.</p>
                     </div>
                     <div class="capability-item">
-                        <h3>Predictive Analytics</h3>
-                        <p>LSTM-based forecasting provides advance warning of potential water quality issues before they impact your stock.</p>
+                        <h3>Multi-Species Support</h3>
+                        <p>Optimized for 8 aquaculture species with species-specific thresholds and risk assessments.</p>
                     </div>
                     <div class="capability-item">
-                        <h3>Species Optimization</h3>
-                        <p>Customized thresholds and recommendations for 8+ species including tilapia, salmon, catfish, shrimp, and more.</p>
+                        <h3>Real-Time Analysis</h3>
+                        <p>Instant water quality assessment with predictive health risk analysis and recommendations.</p>
                     </div>
                     <div class="capability-item">
                         <h3>Global Coverage</h3>
-                        <p>Universal model supports operations anywhere in the world with location-based climate adaptation.</p>
+                        <p>Works anywhere with internet connection using GPS coordinates or preset locations.</p>
                     </div>
                 </div>
             </div>
 
             <div class="panel">
-                <h2>Technical Specifications</h2>
+                <h2>Supported Species</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Species</th>
+                                <th>Temperature (°C)</th>
+                                <th>Dissolved Oxygen (mg/L)</th>
+                                <th>pH Range</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>General Fish</td><td>20-28</td><td>5-12</td><td>6.5-8.5</td></tr>
+                            <tr><td>Tilapia</td><td>25-32</td><td>3-15</td><td>6.0-9.0</td></tr>
+                            <tr><td>Catfish</td><td>24-30</td><td>4-12</td><td>6.5-8.5</td></tr>
+                            <tr><td>Salmon</td><td>10-18</td><td>7-14</td><td>6.5-8.0</td></tr>
+                            <tr><td>Trout</td><td>10-16</td><td>7-14</td><td>6.5-8.0</td></tr>
+                            <tr><td>Carp</td><td>20-28</td><td>4-12</td><td>6.5-9.0</td></tr>
+                            <tr><td>Shrimp</td><td>26-32</td><td>4-10</td><td>7.0-8.5</td></tr>
+                            <tr><td>Prawn</td><td>26-31</td><td>4-10</td><td>7.0-8.5</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Technology Stack</h2>
                 <ul class="specs-list">
-                    <li><strong>Model Architecture:</strong> LSTM with 64 units, dropout regularization</li>
-                    <li><strong>Training Data:</strong> 365 days of historical weather and water quality data</li>
-                    <li><strong>Prediction Horizon:</strong> Next hour forecasting with 24-hour sequence input</li>
-                    <li><strong>Parameters Monitored:</strong> Water temperature, dissolved oxygen, pH level</li>
-                    <li><strong>Update Frequency:</strong> Real-time with hourly predictions</li>
-                    <li><strong>Supported Species:</strong> General fish, tilapia, catfish, salmon, trout, carp, shrimp, prawn</li>
+                    <li><strong>Backend:</strong> Node.js + Express.js</li>
+                    <li><strong>AI/ML:</strong> Python + TensorFlow/Keras (LSTM)</li>
+                    <li><strong>Frontend:</strong> Vanilla JavaScript + Chart.js</li>
+                    <li><strong>Data Source:</strong> Open-Meteo Weather API</li>
+                    <li><strong>Architecture:</strong> Multi-page web application</li>
                 </ul>
             </div>
 
             <div class="panel">
                 <h2>How It Works</h2>
                 <ol class="process-list">
-                    <li><strong>Data Collection:</strong> System gathers weather data (temperature, humidity, precipitation, wind) from global meteorological sources</li>
-                    <li><strong>Parameter Calculation:</strong> Universal formulas compute water quality parameters based on climate-agnostic principles</li>
-                    <li><strong>LSTM Prediction:</strong> Neural network analyzes 24-hour sequences to forecast next-hour conditions</li>
-                    <li><strong>Risk Assessment:</strong> Species-specific thresholds evaluate fish health risks and generate recommendations</li>
-                    <li><strong>Visualization:</strong> Interactive charts and reports present data in actionable formats</li>
+                    <li><strong>Data Collection:</strong> Fetches real-time weather data from global APIs</li>
+                    <li><strong>Climate-Agnostic Processing:</strong> Applies universal physics-based formulas</li>
+                    <li><strong>LSTM Prediction:</strong> Neural network processes 24-hour sequences</li>
+                    <li><strong>Species Analysis:</strong> Applies species-specific thresholds and risk assessment</li>
+                    <li><strong>Visualization:</strong> Presents results with interactive charts and recommendations</li>
                 </ol>
             </div>
 
             <div class="panel">
-                <h2>Contact Information</h2>
-                <p>For technical support, partnership inquiries, or more information about AquaMonitor:</p>
-                <p><strong>Email:</strong> info@aquamonitor.com</p>
-                <p><strong>Phone:</strong> +1 (555) 123-4567</p>
-                <p><strong>Address:</strong> 123 Aquaculture Drive, Marine City, MC 12345</p>
+                <h2>Performance Metrics</h2>
+                <ul class="specs-list">
+                    <li><strong>Training Time:</strong> 5-10 minutes on standard hardware</li>
+                    <li><strong>Prediction Speed:</strong> <2 seconds per location</li>
+                    <li><strong>Memory Usage:</strong> ~50MB for loaded model</li>
+                    <li><strong>Global Coverage:</strong> Any latitude/longitude coordinate</li>
+                    <li><strong>Data Range:</strong> Historical data from 2000 onwards</li>
+                </ul>
             </div>
         </div>
     </main>

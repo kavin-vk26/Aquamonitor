@@ -1,3 +1,111 @@
+// Loading progress management
+function showLoading(title = 'Processing Request') {
+    const loading = document.getElementById('loading');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingStep = document.getElementById('loadingStep');
+    const progressBar = document.getElementById('loadingProgressBar');
+    
+    if (loading && loadingTitle && loadingStep && progressBar) {
+        loadingTitle.textContent = title;
+        loadingStep.textContent = 'Initializing...';
+        progressBar.style.width = '0%';
+        loading.style.display = 'flex';
+    }
+}
+
+function updateLoadingStep(step, progress = 0) {
+    const loadingStep = document.getElementById('loadingStep');
+    const progressBar = document.getElementById('loadingProgressBar');
+    
+    if (loadingStep && progressBar) {
+        loadingStep.textContent = step;
+        progressBar.style.width = progress + '%';
+    }
+}
+
+function hideLoading() {
+    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+}
+
+// Cache busting for API requests
+function addCacheBuster(url) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}_t=${Date.now()}&_r=${Math.random()}`;
+}
+
+// Analytics page location functions
+function getAnalyticsLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('analyticsLatitude').value = pos.coords.latitude.toFixed(5);
+                document.getElementById('analyticsLongitude').value = pos.coords.longitude.toFixed(5);
+            },
+            err => alert('Unable to get location: ' + err.message)
+        );
+    } else alert('Geolocation not supported.');
+}
+
+function filterAnalyticsLocations() {
+    const searchText = document.getElementById('analyticsLocationSearch').value.toLowerCase();
+    const dropdown = document.getElementById('analyticsLocationDropdown');
+    if (!searchText) { dropdown.classList.remove('show'); return; }
+    const filtered = indianCities.filter(c => c.name.toLowerCase().includes(searchText));
+    if (!filtered.length) {
+        dropdown.innerHTML = '<div class="location-item">No locations found</div>';
+    } else {
+        dropdown.innerHTML = filtered.map(c =>
+            `<div class="location-item" onclick="selectAnalyticsLocation('${c.name}',${c.lat},${c.lon})">${c.name}</div>`
+        ).join('');
+    }
+    dropdown.classList.add('show');
+}
+
+function selectAnalyticsLocation(name, lat, lon) {
+    document.getElementById('analyticsLocationSearch').value = name;
+    document.getElementById('analyticsSelectedLat').value = lat;
+    document.getElementById('analyticsSelectedLon').value = lon;
+    document.getElementById('analyticsLatitude').value = lat;
+    document.getElementById('analyticsLongitude').value = lon;
+    document.getElementById('analyticsPresetCoords').textContent = `Lat: ${lat}, Lon: ${lon}`;
+    document.getElementById('analyticsLocationDropdown').classList.remove('show');
+}
+
+function loadAnalyticsData() {
+    const lat = document.getElementById('analyticsLatitude').value || document.getElementById('analyticsSelectedLat').value;
+    const lon = document.getElementById('analyticsLongitude').value || document.getElementById('analyticsSelectedLon').value;
+    
+    if (!lat || !lon) {
+        alert('Please enter coordinates or select a location');
+        return;
+    }
+    
+    showLoading('Loading Analytics Data');
+    updateLoadingStep('Fetching historical data...', 30);
+    
+    // Update current location for data fetching
+    currentLocation = { latitude: parseFloat(lat), longitude: parseFloat(lon) };
+    saveState();
+    
+    loadHistoricalData(lat, lon)
+        .then(() => {
+            updateLoadingStep('Data loaded successfully!', 100);
+            setTimeout(() => hideLoading(), 500);
+        })
+        .catch(err => {
+            alert('Failed to load data: ' + err.message);
+            hideLoading();
+        });
+}
+
+window.getAnalyticsLocation = getAnalyticsLocation;
+window.filterAnalyticsLocations = filterAnalyticsLocations;
+window.selectAnalyticsLocation = selectAnalyticsLocation;
+window.loadAnalyticsData = loadAnalyticsData;
+
 let currentMode = 'manual';
 let currentLocation = { latitude: 11.0168, longitude: 76.9558 };
 let allChartData = null;
@@ -65,6 +173,29 @@ function saveState() {
         if (speciesSelect) sessionStorage.setItem('aq_species', speciesSelect.value);
         if (allChartData) sessionStorage.setItem('aq_data', JSON.stringify(allChartData));
         if (lastPrediction) sessionStorage.setItem('aq_prediction', JSON.stringify(lastPrediction));
+        
+        // Save form values
+        const formFields = {
+            temperature: document.getElementById('temperature')?.value,
+            dissolved_oxygen: document.getElementById('dissolved_oxygen')?.value,
+            ph: document.getElementById('ph')?.value,
+            latitude: document.getElementById('latitude')?.value,
+            longitude: document.getElementById('longitude')?.value,
+            locationSearch: document.getElementById('locationSearch')?.value,
+            selectedLat: document.getElementById('selectedLat')?.value,
+            selectedLon: document.getElementById('selectedLon')?.value,
+            commonFromDate: document.getElementById('commonFromDate')?.value,
+            commonToDate: document.getElementById('commonToDate')?.value
+        };
+        sessionStorage.setItem('aq_form_values', JSON.stringify(formFields));
+        
+        // Save chart controls visibility
+        const chartControls = document.getElementById('chartDataControls');
+        if (chartControls) {
+            sessionStorage.setItem('aq_chart_controls_visible', chartControls.style.display !== 'none');
+            const hint = document.getElementById('selectedLocationHint');
+            if (hint) sessionStorage.setItem('aq_location_hint', hint.textContent);
+        }
     } catch (e) { console.error('Save state error:', e); }
 }
 
@@ -75,18 +206,65 @@ function loadSavedState() {
         const savedPrediction = sessionStorage.getItem('aq_prediction');
         const savedMode = sessionStorage.getItem('aq_mode');
         const savedSpecies = sessionStorage.getItem('aq_species');
+        const savedFormValues = sessionStorage.getItem('aq_form_values');
+        const chartControlsVisible = sessionStorage.getItem('aq_chart_controls_visible');
+        const savedLocationHint = sessionStorage.getItem('aq_location_hint');
+        
         if (savedLocation) currentLocation = JSON.parse(savedLocation);
         if (savedData) allChartData = JSON.parse(savedData);
         if (savedMode) currentMode = savedMode;
+        
         if (savedSpecies) {
             const speciesSelect = document.getElementById('species-select');
             if (speciesSelect) speciesSelect.value = savedSpecies;
         }
+        
+        // Restore form values
+        if (savedFormValues) {
+            const formFields = JSON.parse(savedFormValues);
+            Object.keys(formFields).forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element && formFields[fieldId]) {
+                    element.value = formFields[fieldId];
+                }
+            });
+            
+            // Update preset coordinates display if available
+            const selectedLat = formFields.selectedLat;
+            const selectedLon = formFields.selectedLon;
+            if (selectedLat && selectedLon) {
+                const coordsDisplay = document.getElementById('presetCoords');
+                if (coordsDisplay) {
+                    coordsDisplay.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon}`;
+                }
+            }
+        }
+        
+        // Restore chart controls visibility
+        if (chartControlsVisible === 'true') {
+            const chartControls = document.getElementById('chartDataControls');
+            if (chartControls) {
+                chartControls.style.display = 'block';
+                const hint = document.getElementById('selectedLocationHint');
+                if (hint && savedLocationHint) {
+                    hint.textContent = savedLocationHint;
+                }
+            }
+        }
+        
         if (savedPrediction) {
             lastPrediction = JSON.parse(savedPrediction);
             setTimeout(() => restorePredictionUI(lastPrediction), 100);
         }
+        
         if (savedMode) switchMode(savedMode);
+        
+        // Restore charts if data exists
+        if (allChartData && allChartData.length > 0 && document.getElementById('chart1')) {
+            setTimeout(() => {
+                for (let i = 1; i <= 4; i++) updateChart(i);
+            }, 500);
+        }
     } catch (e) { console.error('Load state error:', e); }
 }
 
@@ -147,6 +325,15 @@ function switchMode(mode) {
         if (btn) btn.classList.toggle('active', m === mode);
         if (form) form.style.display = m === mode ? 'block' : 'none';
     });
+    
+    // Hide chart controls when switching to manual mode
+    const chartControls = document.getElementById('chartDataControls');
+    if (chartControls && mode === 'manual') {
+        chartControls.style.display = 'none';
+    }
+    
+    // Save state after mode change
+    saveState();
 }
 
 function getLocation() {
@@ -217,15 +404,27 @@ function applyCommonDateRange() {
             for (let i = 1; i <= 4; i++) updateChart(i);
         }
     }
+    // Save state after date range change
+    saveState();
 }
 window.applyCommonDateRange = applyCommonDateRange;
 
 function refreshChartsData() {
     const btn = document.querySelector('button[onclick="refreshChartsData()"]');
-    if (btn) { btn.disabled = true; btn.textContent = '🔄 Loading...'; }
-    loadHistoricalData(currentLocation.latitude || 11.0168, currentLocation.longitude || 76.9558)
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading...'; }
+    
+    showLoading('Loading Chart Data');
+    
+    // Use current location from the forms
+    const lat = currentLocation.latitude || 11.0168;
+    const lon = currentLocation.longitude || 76.9558;
+    
+    updateLoadingStep('Preparing data request...', 20);
+    
+    loadHistoricalData(lat, lon)
         .finally(() => {
-            if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh Chart Data'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Load Chart Data'; }
+            hideLoading();
         });
 }
 window.refreshChartsData = refreshChartsData;
@@ -245,16 +444,16 @@ window.resetChartDateRange = resetChartDateRange;
 function initializeDateInputs() {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    const fiveYearsAgo = new Date(today.getFullYear() - 5, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+    const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()).toISOString().split('T')[0];
     const minDate = '2000-01-01';
     for (let i = 1; i <= 4; i++) {
         const f = document.getElementById(`fromDate${i}`);
         const t = document.getElementById(`toDate${i}`);
-        if (f && t) { f.value = fiveYearsAgo; f.min = minDate; f.max = todayStr; t.value = todayStr; t.min = minDate; t.max = todayStr; }
+        if (f && t) { f.value = oneYearAgo; f.min = minDate; f.max = todayStr; t.value = todayStr; t.min = minDate; t.max = todayStr; }
     }
     ['csvFromDate','commonFromDate'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) { el.value = fiveYearsAgo; el.min = minDate; el.max = todayStr; }
+        if (el) { el.value = oneYearAgo; el.min = minDate; el.max = todayStr; }
     });
     ['csvToDate','commonToDate'].forEach(id => {
         const el = document.getElementById(id);
@@ -267,13 +466,24 @@ async function loadHistoricalData(lat, lon) {
     const longitude = lon || currentLocation.longitude || 76.9558;
     const startDate = document.getElementById('commonFromDate')?.value || '';
     const endDate = document.getElementById('commonToDate')?.value || '';
+    
     try {
-        const res = await fetch(`/api/fetch-data?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}`);
+        updateLoadingStep('Connecting to weather data API...', 30);
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        updateLoadingStep('Fetching historical weather data...', 50);
+        const res = await fetch(addCacheBuster(`/api/fetch-data?latitude=${latitude}&longitude=${longitude}&start_date=${startDate}&end_date=${endDate}`));
+        
+        updateLoadingStep('Processing weather data...', 70);
         const csvData = await res.json();
+        
         if (csvData.error) { alert('Error loading data: ' + csvData.error); return; }
+        
         if (csvData.data && csvData.data.length > 0) {
+            updateLoadingStep('Preparing chart visualizations...', 85);
             allChartData = csvData.data;
             saveState();
+            
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
@@ -283,7 +493,9 @@ async function loadHistoricalData(lat, lon) {
                     tbody.appendChild(tr);
                 });
             }
+            
             window.csvData = csvData.csv;
+            
             // Sync per-chart date inputs with the common date range
             const syncFrom = document.getElementById('commonFromDate')?.value;
             const syncTo = document.getElementById('commonToDate')?.value;
@@ -292,6 +504,8 @@ async function loadHistoricalData(lat, lon) {
                 const t = document.getElementById(`toDate${i}`);
                 if (f && t && syncFrom && syncTo) { f.value = syncFrom; t.value = syncTo; }
             }
+            
+            updateLoadingStep('Rendering charts...', 95);
             setTimeout(() => { for (let i = 1; i <= 4; i++) updateChart(i); }, 100);
         } else {
             alert('No data available for this location.');
@@ -418,17 +632,52 @@ async function handlePredictionResponse(data) {
 }
 
 window.addEventListener('load', () => {
+    // Force refresh if coming from cache
+    const perfEntries = performance.getEntriesByType('navigation');
+    if (perfEntries.length > 0 && perfEntries[0].type === 'back_forward') {
+        window.location.reload(true);
+        return;
+    }
+    
+    // Check if this is a cached version by looking at load time
+    const loadTime = performance.timing.responseEnd - performance.timing.requestStart;
+    if (loadTime < 50) { // Very fast load suggests cache
+        console.log('Detected cached load, forcing refresh...');
+        window.location.reload(true);
+        return;
+    }
+    
+    // Add periodic version check
+    setInterval(() => {
+        fetch(addCacheBuster('/dashboard.html'), { method: 'HEAD' })
+            .then(response => {
+                const serverTimestamp = response.headers.get('X-Timestamp');
+                const currentTimestamp = sessionStorage.getItem('page_timestamp');
+                
+                if (currentTimestamp && serverTimestamp && serverTimestamp !== currentTimestamp) {
+                    console.log('New version detected, refreshing...');
+                    sessionStorage.setItem('page_timestamp', serverTimestamp);
+                    window.location.reload(true);
+                }
+            })
+            .catch(err => console.log('Version check failed:', err));
+    }, 30000); // Check every 30 seconds
+    
     loadSavedState();
     initializeDateInputs();
 
-    // Attach prediction form listeners only if they exist
     const predForm = document.getElementById('predictionForm');
     if (predForm) {
         predForm.addEventListener('submit', async e => {
             e.preventDefault();
-            document.getElementById('loading').style.display = 'flex';
+            showLoading('Water Quality Analysis');
+            
             try {
-                const res = await fetch('/api/predict', {
+                updateLoadingStep('Validating input parameters...', 20);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                updateLoadingStep('Processing water quality data...', 50);
+                const res = await fetch(addCacheBuster('/api/predict'), {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         temperature: parseFloat(document.getElementById('temperature').value),
@@ -437,10 +686,23 @@ window.addEventListener('load', () => {
                         species: document.getElementById('species-select').value
                     })
                 });
+                
+                updateLoadingStep('Analyzing results and generating recommendations...', 80);
                 await handlePredictionResponse(await res.json());
+                
+                updateLoadingStep('Loading historical data for charts...', 90);
                 await loadHistoricalData(currentLocation.latitude, currentLocation.longitude);
-            } catch (err) { alert('Error: ' + err.message); }
-            finally { document.getElementById('loading').style.display = 'none'; }
+                
+                updateLoadingStep('Complete!', 100);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Save state after successful prediction
+                saveState();
+            } catch (err) { 
+                alert('Error: ' + err.message); 
+            } finally { 
+                hideLoading();
+            }
         });
     }
 
@@ -451,18 +713,48 @@ window.addEventListener('load', () => {
             const lat = parseFloat(document.getElementById('latitude').value);
             const lon = parseFloat(document.getElementById('longitude').value);
             if (!lat || !lon) { alert('Please enter valid latitude and longitude.'); return; }
+            
             currentLocation = { latitude: lat, longitude: lon };
             saveState();
-            document.getElementById('loading').style.display = 'flex';
+            showLoading('LSTM Prediction Analysis');
+            
             try {
-                const res = await fetch('/api/predict', {
+                updateLoadingStep('Validating coordinates...', 15);
+                await new Promise(resolve => setTimeout(resolve, 400));
+                
+                updateLoadingStep('Fetching weather data from location...', 35);
+                await new Promise(resolve => setTimeout(resolve, 600));
+                
+                updateLoadingStep('Running LSTM neural network prediction...', 60);
+                const res = await fetch(addCacheBuster('/api/predict'), {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ latitude: lat, longitude: lon, species: document.getElementById('species-select').value })
                 });
+                
+                updateLoadingStep('Processing prediction results...', 75);
                 await handlePredictionResponse(await res.json());
+                
+                // Show chart controls after successful location-based prediction
+                const chartControls = document.getElementById('chartDataControls');
+                if (chartControls) {
+                    chartControls.style.display = 'block';
+                    const hint = document.getElementById('selectedLocationHint');
+                    if (hint) hint.textContent = `Charts will show data for coordinates: ${lat}, ${lon}`;
+                }
+                
+                updateLoadingStep('Loading historical data for visualization...', 90);
                 await loadHistoricalData(lat, lon);
-            } catch (err) { alert('Error: ' + err.message); }
-            finally { document.getElementById('loading').style.display = 'none'; }
+                
+                updateLoadingStep('Analysis complete!', 100);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Save state after successful prediction
+                saveState();
+            } catch (err) { 
+                alert('Error: ' + err.message); 
+            } finally { 
+                hideLoading();
+            }
         });
     }
 
@@ -477,12 +769,26 @@ window.addEventListener('load', () => {
             saveState();
             document.getElementById('loading').style.display = 'flex';
             try {
-                const res = await fetch('/api/predict', {
+                updateLoadingStep('Running LSTM neural network prediction...', 60);
+                const res = await fetch(addCacheBuster('/api/predict'), {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ latitude: lat, longitude: lon, species: document.getElementById('species-select').value })
                 });
                 await handlePredictionResponse(await res.json());
+                
+                // Show chart controls after successful preset location prediction
+                const chartControls = document.getElementById('chartDataControls');
+                if (chartControls) {
+                    chartControls.style.display = 'block';
+                    const hint = document.getElementById('selectedLocationHint');
+                    const locationName = document.getElementById('locationSearch').value;
+                    if (hint) hint.textContent = `Charts will show data for: ${locationName} (${lat}, ${lon})`;
+                }
+                
                 await loadHistoricalData(lat, lon);
+                
+                // Save state after successful prediction
+                saveState();
             } catch (err) { alert('Error: ' + err.message); }
             finally { document.getElementById('loading').style.display = 'none'; }
         });
@@ -512,10 +818,16 @@ window.addEventListener('load', () => {
 
     // If on dashboard, load data
     if (document.getElementById('chart1')) {
-        if (allChartData && allChartData.length) {
-            setTimeout(() => { for (let i = 1; i <= 4; i++) updateChart(i); }, 300);
-        } else {
-            loadHistoricalData(currentLocation.latitude, currentLocation.longitude);
+        // Don't automatically load data if we have saved state
+        if (!allChartData || !allChartData.length) {
+            // Only load default data if no saved state exists
+            const hasAnyState = sessionStorage.getItem('aq_location') || 
+                               sessionStorage.getItem('aq_data') || 
+                               sessionStorage.getItem('aq_prediction');
+            
+            if (!hasAnyState) {
+                loadHistoricalData(currentLocation.latitude, currentLocation.longitude);
+            }
         }
     }
 });

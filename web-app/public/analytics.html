@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>AquaMonitor - Analytics</title>
-    <link rel="stylesheet" href="styles.css?v=2.0">
+    <link rel="stylesheet" href="styles.css?v=1.0">
 </head>
 <body>
     <header class="header">
@@ -24,89 +24,75 @@
 
     <main class="analytics-main">
         <div class="container">
-            <h1>Data Analytics</h1>
-            <p class="page-subtitle">Comprehensive historical data analysis and export</p>
+            <h1>Water Quality Analytics</h1>
+            <p class="page-subtitle">Comprehensive data analysis and historical trends</p>
 
             <div class="panel">
-                <h3>Select Location</h3>
-                <div class="mode-tabs" style="margin-bottom: 1rem;">
-                    <button class="tab-btn active" id="manualLocBtn" onclick="switchAnalyticsMode('manual')">Manual Input</button>
-                    <button class="tab-btn" id="gpsLocBtn" onclick="switchAnalyticsMode('gps')">Use GPS</button>
-                    <button class="tab-btn" id="presetLocBtn" onclick="switchAnalyticsMode('preset')">Select Location</button>
-                </div>
-                
-                <div id="manualLocForm" style="display: flex; gap: 1rem; align-items: end;">
-                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
-                        <label>Latitude</label>
-                        <input type="number" id="analyticsLat" step="0.00001" value="11.0168" class="form-control">
+                <h3>Location Selection</h3>
+                <div class="input-group">
+                    <label>Select Location for Data Analysis</label>
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <input type="number" id="analyticsLatitude" placeholder="Latitude" step="0.00001" class="form-control" style="flex: 1; min-width: 150px;">
+                        <input type="number" id="analyticsLongitude" placeholder="Longitude" step="0.00001" class="form-control" style="flex: 1; min-width: 150px;">
+                        <button type="button" class="btn btn-secondary" onclick="getAnalyticsLocation()">Use My Location</button>
+                        <button type="button" class="btn btn-primary" onclick="loadAnalyticsData()">Load Data</button>
                     </div>
-                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
-                        <label>Longitude</label>
-                        <input type="number" id="analyticsLon" step="0.00001" value="76.9558" class="form-control">
-                    </div>
-                    <button id="loadDataBtn" class="btn btn-primary">Load Data</button>
+                    <span class="hint">Enter coordinates or use your current location to load historical data</span>
                 </div>
                 
-                <div id="gpsLocForm" style="display: none;">
-                    <button id="useGpsBtn" class="btn btn-secondary btn-block">Use My Current Location</button>
-                </div>
-                
-                <div id="presetLocForm" style="display: none;">
-                    <div class="input-group" style="margin-bottom: 0;">
-                        <label>Search Location in India</label>
+                <div class="input-group">
+                    <label>Or Search Indian Cities</label>
+                    <div style="position: relative;">
                         <input type="text" id="analyticsLocationSearch" placeholder="Type city name..." autocomplete="off" oninput="filterAnalyticsLocations()" class="form-control">
                         <div id="analyticsLocationDropdown" class="location-dropdown"></div>
+                        <input type="hidden" id="analyticsSelectedLat">
+                        <input type="hidden" id="analyticsSelectedLon">
+                        <span class="hint" id="analyticsPresetCoords">Select a location from dropdown</span>
                     </div>
                 </div>
-                
-                <div style="margin-top: 1rem;">
-                    <button id="loadDataBtnMain" class="btn btn-primary btn-block">Load Data</button>
-                </div>
-                
-                <div class="input-group" style="margin-top: 1rem;">
-                    <label>📅 Date Range for Export</label>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input type="date" id="csvFromDateTop" class="form-control" style="flex: 1;">
-                        <span>to</span>
-                        <input type="date" id="csvToDateTop" class="form-control" style="flex: 1;">
-                    </div>
-                </div>
-                
-                <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);" id="currentLocationText">Select location and click Load Data button</p>
             </div>
 
             <div class="panel">
                 <div class="panel-header">
-                    <h2>Historical Data Records</h2>
+                    <h3>Export Historical Data</h3>
                     <div class="export-controls">
-                        <div class="date-range-controls">
-                            <label>From:</label>
-                            <input type="date" id="csvFromDate" class="form-control-sm date-input">
-                            <label>To:</label>
-                            <input type="date" id="csvToDate" class="form-control-sm date-input">
-                        </div>
-                        <button id="downloadBtn" class="btn btn-primary">Download CSV</button>
+                        <label>From:</label>
+                        <input type="date" id="csvFromDate" class="date-input">
+                        <label>To:</label>
+                        <input type="date" id="csvToDate" class="date-input">
+                        <button id="downloadBtn" class="btn btn-secondary">Download CSV</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="panel">
+                <h3>Historical Data Table</h3>
                 <div class="table-container">
-                    <table id="dataTable" class="data-table">
+                    <table class="data-table">
                         <thead>
                             <tr>
-                                <th>DateTime</th>
+                                <th>Date & Time</th>
                                 <th>Air Temp (°C)</th>
                                 <th>Humidity (%)</th>
-                                <th>Rain (mm)</th>
+                                <th>Rainfall (mm)</th>
                                 <th>Water Temp (°C)</th>
-                                <th>DO (mg/L)</th>
-                                <th>pH</th>
+                                <th>Dissolved O₂ (mg/L)</th>
+                                <th>pH Level</th>
                             </tr>
                         </thead>
                         <tbody id="dataTableBody">
                             <tr>
-                                <td colspan="7" class="text-center">Loading data...</td>
+                                <td colspan="7" class="text-center">No data available. Please load data from the Dashboard first.</td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Data Summary</h3>
+                <div id="dataSummary">
+                    <p>Load data from the Dashboard to see analytics and summary statistics.</p>
                 </div>
             </div>
         </div>
@@ -140,240 +126,6 @@
         </div>
     </footer>
 
-    <script src="script.js?v=2.0"></script>
-    <script>
-        let analyticsMode = 'manual';
-        
-        function switchAnalyticsMode(mode) {
-            analyticsMode = mode;
-            document.getElementById('manualLocBtn').classList.toggle('active', mode === 'manual');
-            document.getElementById('gpsLocBtn').classList.toggle('active', mode === 'gps');
-            document.getElementById('presetLocBtn').classList.toggle('active', mode === 'preset');
-            document.getElementById('manualLocForm').style.display = mode === 'manual' ? 'flex' : 'none';
-            document.getElementById('gpsLocForm').style.display = mode === 'gps' ? 'block' : 'none';
-            document.getElementById('presetLocForm').style.display = mode === 'preset' ? 'block' : 'none';
-        }
-        
-        function filterAnalyticsLocations() {
-            const searchText = document.getElementById('analyticsLocationSearch').value.toLowerCase();
-            const dropdown = document.getElementById('analyticsLocationDropdown');
-            
-            if (searchText.length === 0) {
-                dropdown.classList.remove('show');
-                return;
-            }
-            
-            const filtered = indianCities.filter(city => city.name.toLowerCase().includes(searchText));
-            
-            if (filtered.length === 0) {
-                dropdown.innerHTML = '<div class="location-item">No locations found</div>';
-                dropdown.classList.add('show');
-                return;
-            }
-            
-            dropdown.innerHTML = filtered.map(city => 
-                `<div class="location-item" onclick="selectAnalyticsLocation('${city.name}', ${city.lat}, ${city.lon})">${city.name}</div>`
-            ).join('');
-            
-            dropdown.classList.add('show');
-        }
-        
-        function selectAnalyticsLocation(name, lat, lon) {
-            document.getElementById('analyticsLocationSearch').value = name;
-            document.getElementById('analyticsLat').value = lat;
-            document.getElementById('analyticsLon').value = lon;
-            document.getElementById('analyticsLocationDropdown').classList.remove('show');
-            document.getElementById('currentLocationText').textContent = `Selected: ${name} (${lat}, ${lon}) - Click Load Data`;
-        }
-        
-        window.addEventListener('load', () => {
-            const today = new Date();
-            const oneYearAgo = new Date(today - 365*24*60*60*1000);
-            const todayStr = today.toISOString().split('T')[0];
-            const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
-            
-            const csvFromInput = document.getElementById('csvFromDate');
-            const csvToInput = document.getElementById('csvToDate');
-            const csvFromInputTop = document.getElementById('csvFromDateTop');
-            const csvToInputTop = document.getElementById('csvToDateTop');
-            
-            if (csvFromInput && csvToInput) {
-                csvFromInput.value = oneYearAgoStr;
-                csvFromInput.setAttribute('min', oneYearAgoStr);
-                csvFromInput.setAttribute('max', todayStr);
-                csvToInput.value = todayStr;
-                csvToInput.setAttribute('min', oneYearAgoStr);
-                csvToInput.setAttribute('max', todayStr);
-            }
-            if (csvFromInputTop && csvToInputTop) {
-                csvFromInputTop.value = oneYearAgoStr;
-                csvFromInputTop.setAttribute('min', oneYearAgoStr);
-                csvFromInputTop.setAttribute('max', todayStr);
-                csvToInputTop.value = todayStr;
-                csvToInputTop.setAttribute('min', oneYearAgoStr);
-                csvToInputTop.setAttribute('max', todayStr);
-            }
-            
-            if (csvFromInputTop) {
-                csvFromInputTop.addEventListener('change', () => {
-                    if (csvFromInput) csvFromInput.value = csvFromInputTop.value;
-                });
-            }
-            if (csvToInputTop) {
-                csvToInputTop.addEventListener('change', () => {
-                    if (csvToInput) csvToInput.value = csvToInputTop.value;
-                });
-            }
-            try {
-                const savedLocation = sessionStorage.getItem('aq_location');
-                const savedData = sessionStorage.getItem('aq_data');
-                
-                if (savedLocation) {
-                    const loc = JSON.parse(savedLocation);
-                    document.getElementById('analyticsLat').value = loc.latitude;
-                    document.getElementById('analyticsLon').value = loc.longitude;
-                    currentLocation = loc;
-                }
-                
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    allChartData = data;
-                    const tbody = document.getElementById('dataTableBody');
-                    if (tbody && data.length > 0) {
-                        tbody.innerHTML = '';
-                        data.forEach(row => {
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `
-                                <td>${row.datetime}</td>
-                                <td>${row.air_temp}</td>
-                                <td>${row.humidity}</td>
-                                <td>${row.rain}</td>
-                                <td>${row.water_temp}</td>
-                                <td>${row.do}</td>
-                                <td>${row.ph}</td>
-                            `;
-                            tbody.appendChild(tr);
-                        });
-                        document.getElementById('currentLocationText').textContent = `Current: Location (${loc.latitude}, ${loc.longitude})`;
-                    }
-                }
-            } catch (e) {
-                console.error('Analytics load error:', e);
-            }
-        });
-        
-        // Use GPS button
-        const useGpsBtn = document.getElementById('useGpsBtn');
-        if (useGpsBtn) {
-            useGpsBtn.addEventListener('click', () => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude.toFixed(5);
-                            const lon = position.coords.longitude.toFixed(5);
-                            document.getElementById('analyticsLat').value = lat;
-                            document.getElementById('analyticsLon').value = lon;
-                            document.getElementById('currentLocationText').textContent = `Selected: GPS Location (${lat}, ${lon}) - Click Load Data`;
-                        },
-                        (error) => alert('Unable to get location: ' + error.message)
-                    );
-                } else {
-                    alert('Geolocation is not supported by this browser.');
-                }
-            });
-        }
-        
-        // Main Load Data button handler
-        const loadDataBtnMain = document.getElementById('loadDataBtnMain');
-        if (loadDataBtnMain) {
-            loadDataBtnMain.addEventListener('click', () => {
-                const lat = parseFloat(document.getElementById('analyticsLat').value);
-                const lon = parseFloat(document.getElementById('analyticsLon').value);
-                if (lat && lon) {
-                    document.getElementById('currentLocationText').textContent = `Loading data for (${lat}, ${lon})...`;
-                    currentLocation = { latitude: lat, longitude: lon };
-                    saveState();
-                    loadHistoricalData(lat, lon).then(() => {
-                        document.getElementById('currentLocationText').textContent = `Current: Location (${lat}, ${lon})`;
-                    });
-                } else {
-                    alert('Please enter valid coordinates');
-                }
-            });
-        }
-        
-        // Load data button handler
-        const loadDataBtn = document.getElementById('loadDataBtn');
-        if (loadDataBtn) {
-            loadDataBtn.addEventListener('click', () => {
-                const lat = parseFloat(document.getElementById('analyticsLat').value);
-                const lon = parseFloat(document.getElementById('analyticsLon').value);
-                if (lat && lon) {
-                    document.getElementById('currentLocationText').textContent = `Loading data for (${lat}, ${lon})...`;
-                    currentLocation = { latitude: lat, longitude: lon };
-                    saveState();
-                    loadHistoricalData(lat, lon).then(() => {
-                        document.getElementById('currentLocationText').textContent = `Current: Location (${lat}, ${lon})`;
-                    });
-                } else {
-                    alert('Please enter valid coordinates');
-                }
-            });
-        }
-        
-        // CSV download handler
-        const downloadBtn = document.getElementById('downloadBtn');
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', () => {
-                if (!allChartData) {
-                    alert('No data available. Please wait for data to load.');
-                    return;
-                }
-                
-                const fromDate = document.getElementById('csvFromDate').value;
-                const toDate = document.getElementById('csvToDate').value;
-                
-                let filteredData = allChartData;
-                
-                // Filter data by date range if dates are provided
-                if (fromDate && toDate) {
-                    const fromDateTime = new Date(fromDate);
-                    const toDateTime = new Date(toDate);
-                    toDateTime.setHours(23, 59, 59, 999); // Include full end date
-                    
-                    filteredData = allChartData.filter(row => {
-                        const rowDate = new Date(row.datetime);
-                        return rowDate >= fromDateTime && rowDate <= toDateTime;
-                    });
-                }
-                
-                if (filteredData.length === 0) {
-                    alert('No data available for selected date range.');
-                    return;
-                }
-                
-                const headers = ['DateTime', 'Air Temp', 'Humidity', 'Rain', 'Water Temp', 'DO', 'pH'];
-                let csvContent = headers.join(',') + '\n';
-                
-                filteredData.forEach(row => {
-                    csvContent += `${row.datetime},${row.air_temp},${row.humidity},${row.rain},${row.water_temp},${row.do},${row.ph}\n`;
-                });
-                
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                
-                const fromDateStr = fromDate ? fromDate.replace(/-/g, '') : 'all';
-                const toDateStr = toDate ? toDate.replace(/-/g, '') : 'data';
-                
-                a.download = `water_quality_${fromDateStr}_to_${toDateStr}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            });
-        }
-    </script>
+    <script src="script.js?v=1.0"></script>
 </body>
 </html>
