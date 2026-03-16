@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AquaMonitor - Analytics</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.0">
 </head>
 <body>
     <header class="header">
@@ -60,6 +63,15 @@
                     <button id="loadDataBtnMain" class="btn btn-primary btn-block">Load Data</button>
                 </div>
                 
+                <div class="input-group" style="margin-top: 1rem;">
+                    <label>📅 Date Range for Export</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="date" id="csvFromDateTop" class="form-control" style="flex: 1;">
+                        <span>to</span>
+                        <input type="date" id="csvToDateTop" class="form-control" style="flex: 1;">
+                    </div>
+                </div>
+                
                 <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);" id="currentLocationText">Select location and click Load Data button</p>
             </div>
 
@@ -67,12 +79,12 @@
                 <div class="panel-header">
                     <h2>Historical Data Records</h2>
                     <div class="export-controls">
-                        <select id="csvTimeRange" class="form-control-sm">
-                            <option value="24">Last 24 Hours</option>
-                            <option value="168">Last 7 Days</option>
-                            <option value="720" selected>Last 30 Days</option>
-                            <option value="8760">Last 1 Year</option>
-                        </select>
+                        <div class="date-range-controls">
+                            <label>From:</label>
+                            <input type="date" id="csvFromDate" class="form-control-sm date-input">
+                            <label>To:</label>
+                            <input type="date" id="csvToDate" class="form-control-sm date-input">
+                        </div>
                         <button id="downloadBtn" class="btn btn-primary">Download CSV</button>
                     </div>
                 </div>
@@ -128,7 +140,7 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2.0"></script>
     <script>
         let analyticsMode = 'manual';
         
@@ -174,8 +186,44 @@
             document.getElementById('currentLocationText').textContent = `Selected: ${name} (${lat}, ${lon}) - Click Load Data`;
         }
         
-        // Load data on analytics page
         window.addEventListener('load', () => {
+            const today = new Date();
+            const oneYearAgo = new Date(today - 365*24*60*60*1000);
+            const todayStr = today.toISOString().split('T')[0];
+            const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+            
+            const csvFromInput = document.getElementById('csvFromDate');
+            const csvToInput = document.getElementById('csvToDate');
+            const csvFromInputTop = document.getElementById('csvFromDateTop');
+            const csvToInputTop = document.getElementById('csvToDateTop');
+            
+            if (csvFromInput && csvToInput) {
+                csvFromInput.value = oneYearAgoStr;
+                csvFromInput.setAttribute('min', oneYearAgoStr);
+                csvFromInput.setAttribute('max', todayStr);
+                csvToInput.value = todayStr;
+                csvToInput.setAttribute('min', oneYearAgoStr);
+                csvToInput.setAttribute('max', todayStr);
+            }
+            if (csvFromInputTop && csvToInputTop) {
+                csvFromInputTop.value = oneYearAgoStr;
+                csvFromInputTop.setAttribute('min', oneYearAgoStr);
+                csvFromInputTop.setAttribute('max', todayStr);
+                csvToInputTop.value = todayStr;
+                csvToInputTop.setAttribute('min', oneYearAgoStr);
+                csvToInputTop.setAttribute('max', todayStr);
+            }
+            
+            if (csvFromInputTop) {
+                csvFromInputTop.addEventListener('change', () => {
+                    if (csvFromInput) csvFromInput.value = csvFromInputTop.value;
+                });
+            }
+            if (csvToInputTop) {
+                csvToInputTop.addEventListener('change', () => {
+                    if (csvToInput) csvToInput.value = csvToInputTop.value;
+                });
+            }
             try {
                 const savedLocation = sessionStorage.getItem('aq_location');
                 const savedData = sessionStorage.getItem('aq_data');
@@ -282,14 +330,26 @@
                     return;
                 }
                 
-                const timeRange = parseInt(document.getElementById('csvTimeRange').value);
-                const totalHours = allChartData.length;
+                const fromDate = document.getElementById('csvFromDate').value;
+                const toDate = document.getElementById('csvToDate').value;
                 
-                let filteredData;
-                if (timeRange >= totalHours) {
-                    filteredData = allChartData;
-                } else {
-                    filteredData = allChartData.slice(-timeRange);
+                let filteredData = allChartData;
+                
+                // Filter data by date range if dates are provided
+                if (fromDate && toDate) {
+                    const fromDateTime = new Date(fromDate);
+                    const toDateTime = new Date(toDate);
+                    toDateTime.setHours(23, 59, 59, 999); // Include full end date
+                    
+                    filteredData = allChartData.filter(row => {
+                        const rowDate = new Date(row.datetime);
+                        return rowDate >= fromDateTime && rowDate <= toDateTime;
+                    });
+                }
+                
+                if (filteredData.length === 0) {
+                    alert('No data available for selected date range.');
+                    return;
                 }
                 
                 const headers = ['DateTime', 'Air Temp', 'Humidity', 'Rain', 'Water Temp', 'DO', 'pH'];
@@ -304,13 +364,10 @@
                 const a = document.createElement('a');
                 a.href = url;
                 
-                let rangeLabel;
-                if (timeRange === 24) rangeLabel = '24hours';
-                else if (timeRange === 168) rangeLabel = '7days';
-                else if (timeRange === 720) rangeLabel = '30days';
-                else rangeLabel = '1year';
+                const fromDateStr = fromDate ? fromDate.replace(/-/g, '') : 'all';
+                const toDateStr = toDate ? toDate.replace(/-/g, '') : 'data';
                 
-                a.download = `water_quality_${rangeLabel}_${new Date().toISOString().split('T')[0]}.csv`;
+                a.download = `water_quality_${fromDateStr}_to_${toDateStr}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);

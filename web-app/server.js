@@ -8,7 +8,33 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// Generate version for cache busting
+const VERSION = Date.now();
+
+// Disable caching for all static files to prevent old code from being served
+app.use(express.static('public', {
+    etag: false,
+    maxAge: 0,
+    lastModified: false,
+    setHeaders: (res, path) => {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, private');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        res.set('Surrogate-Control', 'no-store');
+        res.set('X-Version', VERSION);
+    }
+}));
+
+// Cache busting middleware for HTML files
+app.use((req, res, next) => {
+    if (req.url.endsWith('.html') || req.url === '/') {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+    }
+    next();
+});
 
 app.post('/api/predict', (req, res) => {
     const { temperature, dissolved_oxygen, ph, latitude, longitude, species } = req.body;
@@ -88,29 +114,57 @@ app.post('/api/predict', (req, res) => {
 app.get('/api/fetch-data', (req, res) => {
     const lat = req.query.latitude || 10.98267;
     const lon = req.query.longitude || 76.97678;
+    const startDate = req.query.start_date || '';
+    const endDate = req.query.end_date || '';
+    
+    console.log(`Fetching data for coordinates: ${lat}, ${lon} | Range: ${startDate || 'default'} to ${endDate || 'today'}`);
     
     const python = spawn('python', [
         path.join(__dirname, 'fetch_data_universal.py'),
         lat,
-        lon
+        lon,
+        startDate,
+        endDate
     ]);
     
     let result = '';
+    let errorOutput = '';
+    
     python.stdout.on('data', (data) => {
         result += data.toString();
     });
     
+    python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+        console.error(`Python stderr: ${data}`);
+    });
+    
     python.on('close', (code) => {
+        console.log(`Python process exited with code: ${code}`);
+        if (code !== 0) {
+            console.error(`Error output: ${errorOutput}`);
+            res.status(500).json({ error: 'Failed to fetch data', details: errorOutput });
+            return;
+        }
+        
         try {
-            res.json(JSON.parse(result));
+            const parsed = JSON.parse(result);
+            console.log(`Successfully fetched ${parsed.rows || 0} data points`);
+            res.json(parsed);
         } catch (e) {
-            res.status(500).json({ error: 'Failed to fetch data' });
+            console.error(`JSON parse error: ${e.message}`);
+            console.error(`Raw result: ${result}`);
+            res.status(500).json({ error: 'Failed to parse data response', details: result });
         }
     });
 });
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'home.html'));
+});
+
+app.get('/test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'test_charts.html'));
 });
 
 app.listen(PORT, () => {

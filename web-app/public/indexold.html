@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Water Quality Predictor</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.0">
 </head>
 <body>
     <div class="header">
@@ -31,6 +34,17 @@
                         <option value="shrimp">Shrimp (Penaeus)</option>
                         <option value="prawn">Freshwater Prawn</option>
                     </select>
+                </div>
+                
+                <!-- Common Date Range -->
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>📅 Common Date Range (All Charts)</label>
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                        <input type="date" id="commonFromDate" class="time-select date-input" style="flex: 1;">
+                        <span>to</span>
+                        <input type="date" id="commonToDate" class="time-select date-input" style="flex: 1;">
+                    </div>
+                    <button type="button" class="btn-predict" onclick="applyCommonDateRange()" style="width: 100%;">Apply to All Charts</button>
                 </div>
                 
                 <!-- Mode Toggle -->
@@ -142,12 +156,12 @@
             <div class="box chart-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h2>📊 Combined Trends</h2>
-                    <select id="timeRange1" onchange="updateChart(1)" class="time-select">
-                        <option value="24">Last 24 Hours</option>
-                        <option value="168">Last 7 Days</option>
-                        <option value="720" selected>Last 30 Days</option>
-                        <option value="8760">Last 1 Year</option>
-                    </select>
+                    <div class="date-range-controls">
+                        <label>From:</label>
+                        <input type="date" id="fromDate1" class="time-select date-input" onchange="updateChart(1)">
+                        <label>To:</label>
+                        <input type="date" id="toDate1" class="time-select date-input" onchange="updateChart(1)">
+                    </div>
                 </div>
                 <canvas id="chart1"></canvas>
             </div>
@@ -156,12 +170,12 @@
             <div class="box chart-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h2>🌡️ Water Temperature</h2>
-                    <select id="timeRange2" onchange="updateChart(2)" class="time-select">
-                        <option value="24">Last 24 Hours</option>
-                        <option value="168">Last 7 Days</option>
-                        <option value="720" selected>Last 30 Days</option>
-                        <option value="8760">Last 1 Year</option>
-                    </select>
+                    <div class="date-range-controls">
+                        <label>From:</label>
+                        <input type="date" id="fromDate2" class="time-select date-input" onchange="updateChart(2)">
+                        <label>To:</label>
+                        <input type="date" id="toDate2" class="time-select date-input" onchange="updateChart(2)">
+                    </div>
                 </div>
                 <canvas id="chart2"></canvas>
             </div>
@@ -170,12 +184,12 @@
             <div class="box chart-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h2>💧 Dissolved Oxygen</h2>
-                    <select id="timeRange3" onchange="updateChart(3)" class="time-select">
-                        <option value="24">Last 24 Hours</option>
-                        <option value="168">Last 7 Days</option>
-                        <option value="720" selected>Last 30 Days</option>
-                        <option value="8760">Last 1 Year</option>
-                    </select>
+                    <div class="date-range-controls">
+                        <label>From:</label>
+                        <input type="date" id="fromDate3" class="time-select date-input" onchange="updateChart(3)">
+                        <label>To:</label>
+                        <input type="date" id="toDate3" class="time-select date-input" onchange="updateChart(3)">
+                    </div>
                 </div>
                 <canvas id="chart3"></canvas>
             </div>
@@ -184,12 +198,12 @@
             <div class="box chart-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h2>⚗️ pH Level</h2>
-                    <select id="timeRange4" onchange="updateChart(4)" class="time-select">
-                        <option value="24">Last 24 Hours</option>
-                        <option value="168">Last 7 Days</option>
-                        <option value="720" selected>Last 30 Days</option>
-                        <option value="8760">Last 1 Year</option>
-                    </select>
+                    <div class="date-range-controls">
+                        <label>From:</label>
+                        <input type="date" id="fromDate4" class="time-select date-input" onchange="updateChart(4)">
+                        <label>To:</label>
+                        <input type="date" id="toDate4" class="time-select date-input" onchange="updateChart(4)">
+                    </div>
                 </div>
                 <canvas id="chart4"></canvas>
             </div>
@@ -198,12 +212,12 @@
                 <div class="table-header">
                     <h2>📁 Data Records</h2>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <select id="csvTimeRange" class="time-select" style="padding: 8px 12px;">
-                            <option value="24">Last 24 Hours</option>
-                            <option value="168">Last 7 Days</option>
-                            <option value="720" selected>Last 30 Days</option>
-                            <option value="8760">Last 1 Year</option>
-                        </select>
+                        <div class="date-range-controls">
+                            <label>From:</label>
+                            <input type="date" id="csvFromDate" class="time-select date-input">
+                            <label>To:</label>
+                            <input type="date" id="csvToDate" class="time-select date-input">
+                        </div>
                         <button id="downloadBtn" class="btn-download">⬇ Download CSV</button>
                     </div>
                 </div>
@@ -238,10 +252,56 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=2.0"></script>
     <script>
+        function initializeDateInputsOld() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            const ninetyDaysAgo = new Date(today.getTime() - (90 * 24 * 60 * 60 * 1000));
+            
+            const todayStr = today.toISOString().split('T')[0];
+            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+            const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
+            
+            const commonFromDate = document.getElementById('commonFromDate');
+            const commonToDate = document.getElementById('commonToDate');
+            if (commonFromDate && commonToDate) {
+                commonFromDate.value = thirtyDaysAgoStr;
+                commonFromDate.setAttribute('min', ninetyDaysAgoStr);
+                commonFromDate.setAttribute('max', todayStr);
+                commonToDate.value = todayStr;
+                commonToDate.setAttribute('min', ninetyDaysAgoStr);
+                commonToDate.setAttribute('max', todayStr);
+            }
+            
+            for (let i = 1; i <= 4; i++) {
+                const fromInput = document.getElementById(`fromDate${i}`);
+                const toInput = document.getElementById(`toDate${i}`);
+                if (fromInput && toInput) {
+                    fromInput.value = thirtyDaysAgoStr;
+                    fromInput.setAttribute('min', ninetyDaysAgoStr);
+                    fromInput.setAttribute('max', todayStr);
+                    toInput.value = todayStr;
+                    toInput.setAttribute('min', ninetyDaysAgoStr);
+                    toInput.setAttribute('max', todayStr);
+                }
+            }
+            
+            const csvFromInput = document.getElementById('csvFromDate');
+            const csvToInput = document.getElementById('csvToDate');
+            if (csvFromInput && csvToInput) {
+                csvFromInput.value = thirtyDaysAgoStr;
+                csvFromInput.setAttribute('min', ninetyDaysAgoStr);
+                csvFromInput.setAttribute('max', todayStr);
+                csvToInput.value = todayStr;
+                csvToInput.setAttribute('min', ninetyDaysAgoStr);
+                csvToInput.setAttribute('max', todayStr);
+            }
+        }
+        
         // Auto-load data on page load for indexold.html
         window.addEventListener('load', () => {
+            initializeDateInputsOld();
             loadHistoricalData();
         });
     </script>

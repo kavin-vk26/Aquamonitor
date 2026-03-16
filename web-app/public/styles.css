@@ -459,11 +459,6 @@ body {
     border-radius: 4px;
 }
 
-/* Charts */
-.chart-panel canvas {
-    max-height: 400px;
-}
-
 /* Analytics Page */
 .analytics-main {
     padding: 2rem 0;
@@ -479,6 +474,34 @@ body {
     display: flex;
     gap: 1rem;
     align-items: center;
+}
+
+/* Date Range Controls */
+.date-range-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.date-range-controls label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.date-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    min-width: 140px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 .table-container {
@@ -584,6 +607,20 @@ body {
 }
 
 .loading p {
+    color: white;
+    margin-top: 1rem;
+}
+
+/* Charts */
+.chart-panel canvas {
+    height: 300px !important;
+    width: 100% !important;
+}
+
+#chart1 {
+    height: 500px !important;
+}
+
 @media (max-width: 768px) {
     .dashboard-container {
         grid-template-columns: 1fr;

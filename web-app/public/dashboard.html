@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AquaMonitor - Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.0">
 </head>
 <body>
     <header class="header">
@@ -39,6 +42,17 @@
                         </select>
                     </div>
                     
+                    <div class="input-group">
+                        <label>📅 Data Date Range (Fetch & Charts)</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                            <input type="date" id="commonFromDate" class="form-control" style="flex: 1;">
+                            <span>to</span>
+                            <input type="date" id="commonToDate" class="form-control" style="flex: 1;">
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-block" onclick="applyCommonDateRange()">Apply to All Charts</button>
+                        <button type="button" class="btn btn-primary btn-block" onclick="refreshChartsData()" style="margin-top: 0.5rem;">🔄 Refresh Chart Data</button>
+                    </div>
+                    
                     <div class="mode-tabs">
                         <button class="tab-btn active" id="manualBtn" onclick="switchMode('manual')">Manual Input</button>
                         <button class="tab-btn" id="locationBtn" onclick="switchMode('location')">GPS Coordinates</button>
@@ -70,12 +84,12 @@
                     <form id="locationForm" style="display: none;">
                         <div class="input-group">
                             <label>Latitude</label>
-                            <input type="number" id="latitude" step="0.00001" required placeholder="10.98267" class="form-control">
+                            <input type="number" id="latitude" step="0.00001" placeholder="10.98267" class="form-control">
                         </div>
                         
                         <div class="input-group">
                             <label>Longitude</label>
-                            <input type="number" id="longitude" step="0.00001" required placeholder="76.97678" class="form-control">
+                            <input type="number" id="longitude" step="0.00001" placeholder="76.97678" class="form-control">
                         </div>
                         
                         <button type="button" class="btn btn-secondary btn-block" onclick="getLocation()">Use My Location</button>
@@ -142,53 +156,64 @@
                 <div class="panel chart-panel">
                     <div class="panel-header">
                         <h3>Combined Trends</h3>
-                        <select id="timeRange1" onchange="updateChart(1)" class="form-control-sm">
-                            <option value="24">Last 24 Hours</option>
-                            <option value="168">Last 7 Days</option>
-                            <option value="720" selected>Last 30 Days</option>
-                            <option value="8760">Last 1 Year</option>
-                        </select>
+                        <div class="date-range-controls">
+                            <label>From:</label>
+                            <input type="date" id="fromDate1" class="form-control-sm date-input" onchange="updateChart(1)">
+                            <label>To:</label>
+                            <input type="date" id="toDate1" class="form-control-sm date-input" onchange="updateChart(1)">
+                        </div>
                     </div>
-                    <canvas id="chart1"></canvas>
+                    <div style="position:relative;height:500px;"><canvas id="chart1"></canvas></div>
                 </div>
 
                 <div class="panel chart-panel">
                     <div class="panel-header">
                         <h3>Water Temperature</h3>
-                        <select id="timeRange2" onchange="updateChart(2)" class="form-control-sm">
-                            <option value="24">Last 24 Hours</option>
-                            <option value="168">Last 7 Days</option>
-                            <option value="720" selected>Last 30 Days</option>
-                            <option value="8760">Last 1 Year</option>
-                        </select>
+                        <div class="date-range-controls">
+                            <label>From:</label>
+                            <input type="date" id="fromDate2" class="form-control-sm date-input" onchange="updateChart(2)">
+                            <label>To:</label>
+                            <input type="date" id="toDate2" class="form-control-sm date-input" onchange="updateChart(2)">
+                        </div>
                     </div>
-                    <canvas id="chart2"></canvas>
+                    <div style="position:relative;height:300px;"><canvas id="chart2"></canvas></div>
                 </div>
 
                 <div class="panel chart-panel">
                     <div class="panel-header">
                         <h3>Dissolved Oxygen</h3>
-                        <select id="timeRange3" onchange="updateChart(3)" class="form-control-sm">
-                            <option value="24">Last 24 Hours</option>
-                            <option value="168">Last 7 Days</option>
-                            <option value="720" selected>Last 30 Days</option>
-                            <option value="8760">Last 1 Year</option>
-                        </select>
+                        <div class="date-range-controls">
+                            <label>From:</label>
+                            <input type="date" id="fromDate3" class="form-control-sm date-input" onchange="updateChart(3)">
+                            <label>To:</label>
+                            <input type="date" id="toDate3" class="form-control-sm date-input" onchange="updateChart(3)">
+                        </div>
                     </div>
-                    <canvas id="chart3"></canvas>
+                    <div style="position:relative;height:300px;"><canvas id="chart3"></canvas></div>
                 </div>
 
                 <div class="panel chart-panel">
                     <div class="panel-header">
                         <h3>pH Level</h3>
-                        <select id="timeRange4" onchange="updateChart(4)" class="form-control-sm">
-                            <option value="24">Last 24 Hours</option>
-                            <option value="168">Last 7 Days</option>
-                            <option value="720" selected>Last 30 Days</option>
-                            <option value="8760">Last 1 Year</option>
-                        </select>
+                        <div class="date-range-controls">
+                            <label>From:</label>
+                            <input type="date" id="fromDate4" class="form-control-sm date-input" onchange="updateChart(4)">
+                            <label>To:</label>
+                            <input type="date" id="toDate4" class="form-control-sm date-input" onchange="updateChart(4)">
+                        </div>
                     </div>
-                    <canvas id="chart4"></canvas>
+                    <div style="position:relative;height:300px;"><canvas id="chart4"></canvas></div>
+                </div>
+
+                <div class="panel">
+                    <h3>Export Data (CSV)</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <label>From:</label>
+                        <input type="date" id="csvFromDate" class="form-control-sm date-input">
+                        <label>To:</label>
+                        <input type="date" id="csvToDate" class="form-control-sm date-input">
+                        <button id="downloadBtn" class="btn btn-secondary">Download CSV</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -228,7 +253,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=4.0"></script>
 </body>
 </html>
