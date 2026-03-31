@@ -25,8 +25,8 @@
     <main class="dashboard-main">
         <div class="dashboard-container">
             <div class="sidebar">
-                <div class="panel">
-                    <h2>Input Parameters</h2>
+                <div class="panel prediction-panel">
+                    <h2>Water Quality Predictions</h2>
                     
                     <div class="input-group">
                         <label>Select Species</label>
@@ -42,126 +42,193 @@
                         </select>
                     </div>
                     
-                    <div class="mode-tabs">
-                        <button class="tab-btn active" id="manualBtn" onclick="switchMode('manual')">Manual Input</button>
-                        <button class="tab-btn" id="locationBtn" onclick="switchMode('location')">GPS Coordinates</button>
-                        <button class="tab-btn" id="presetBtn" onclick="switchMode('preset')">Select Location</button>
-                    </div>
-                    
-                    <form id="predictionForm" style="display: block;">
-                        <div class="input-group">
-                            <label>Water Temperature (°C)</label>
-                            <input type="number" id="temperature" step="0.1" required placeholder="25.5" class="form-control">
-                            <span class="hint">Optimal: 20-28°C</span>
-                        </div>
-
-                        <div class="input-group">
-                            <label>Dissolved Oxygen (mg/L)</label>
-                            <input type="number" id="dissolved_oxygen" step="0.1" required placeholder="8.5" class="form-control">
-                            <span class="hint">Optimal: 5-10 mg/L</span>
-                        </div>
-
-                        <div class="input-group">
-                            <label>pH Level</label>
-                            <input type="number" id="ph" step="0.01" required placeholder="7.2" class="form-control">
-                            <span class="hint">Optimal: 6.5-8.5</span>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-block">Predict Quality</button>
-                    </form>
-                    
-                    <form id="locationForm" style="display: none;">
-                        <div class="input-group">
-                            <label>Latitude</label>
-                            <input type="number" id="latitude" step="0.00001" placeholder="10.98267" class="form-control">
+                    <!-- Unified Location Section -->
+                    <div class="location-section">
+                        <h3>Location Setup</h3>
+                        <div class="location-tabs">
+                            <button type="button" class="location-tab active" id="coordsTab" onclick="switchLocationMode('coords')">
+                                GPS Coordinates
+                            </button>
+                            <button type="button" class="location-tab" id="cityTab" onclick="switchLocationMode('city')">
+                                Select City
+                            </button>
                         </div>
                         
-                        <div class="input-group">
-                            <label>Longitude</label>
-                            <input type="number" id="longitude" step="0.00001" placeholder="76.97678" class="form-control">
+                        <div id="coordsLocation" class="location-input">
+                            <div class="coords-row">
+                                <div class="input-group">
+                                    <label>Latitude</label>
+                                    <input type="number" id="mainLatitude" step="0.00001" placeholder="11.0168" class="form-control">
+                                </div>
+                                <div class="input-group">
+                                    <label>Longitude</label>
+                                    <input type="number" id="mainLongitude" step="0.00001" placeholder="76.9558" class="form-control">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="getCurrentLocation()">Use My Location</button>
                         </div>
                         
-                        <button type="button" class="btn btn-secondary btn-block" onclick="getLocation()">Use My Location</button>
-                        <button type="submit" class="btn btn-primary btn-block">Predict with LSTM</button>
-                    </form>
-                    
-                    <form id="presetForm" style="display: none;">
-                        <div class="input-group">
-                            <label>Search Location in India</label>
-                            <input type="text" id="locationSearch" placeholder="Type city name..." autocomplete="off" oninput="filterLocations()" class="form-control">
-                            <div id="locationDropdown" class="location-dropdown"></div>
-                            <input type="hidden" id="selectedLat">
-                            <input type="hidden" id="selectedLon">
-                            <span class="hint" id="presetCoords">Select a location</span>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-block">Predict with LSTM</button>
-                    </form>
-                    
-                    <!-- Chart Data Controls - Only show after location is selected -->
-                    <div id="chartDataControls" class="chart-data-controls" style="display: none; margin-top: 1rem;">
-                        <h3>Chart Data Controls</h3>
-                        <div class="date-range-section">
-                            <h4>Select Date Range for Charts</h4>
-                            <div class="date-inputs">
-                                <input type="date" id="commonFromDate" class="form-control">
-                                <span style="color: white; font-weight: 500;">to</span>
-                                <input type="date" id="commonToDate" class="form-control">
-                                <button type="button" onclick="applyCommonDateRange()">Apply to All Charts</button>
+                        <div id="cityLocation" class="location-input" style="display: none;">
+                            <div class="input-group">
+                                <label>Search Indian Cities</label>
+                                <input type="text" id="mainLocationSearch" placeholder="Type city name..." autocomplete="off" oninput="filterMainLocations()" class="form-control">
+                                <div id="mainLocationDropdown" class="location-dropdown"></div>
+                                <span class="hint" id="mainLocationHint">Select a city from dropdown</span>
                             </div>
                         </div>
-                        <div class="refresh-section">
-                            <button type="button" onclick="refreshChartsData()">Load Chart Data</button>
-                            <div class="location-hint" id="selectedLocationHint">Charts will show data for selected location</div>
+                    </div>
+                    
+                    <!-- Unified Prediction Section -->
+                    <div class="prediction-section">
+                        <h3>Prediction Type</h3>
+                        <div class="prediction-tabs">
+                            <button type="button" class="prediction-tab" id="currentTab" onclick="switchPredictionMode('current')">
+                                Current Analysis
+                            </button>
+                            <button type="button" class="prediction-tab" id="manualTab" onclick="switchPredictionMode('manual')">
+                                Manual Input
+                            </button>
+                            <button type="button" class="prediction-tab" id="futureTab" onclick="switchPredictionMode('future')">
+                                Future Forecast
+                            </button>
+                        </div>
+                        
+                        <div id="currentPrediction" class="prediction-input" style="display: none;">
+                            <div class="prediction-description">
+                                <p>Analyze current water quality using LSTM model based on real-time weather data for the selected location.</p>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-block" onclick="runCurrentPrediction()">Analyze Current Quality</button>
+                        </div>
+                        
+                        <div id="manualPrediction" class="prediction-input" style="display: none;">
+                            <div class="prediction-description">
+                                <p>Enter your own water parameter measurements for immediate analysis.</p>
+                            </div>
+                            <div class="manual-inputs">
+                                <div class="input-group">
+                                    <label>Water Temperature (°C)</label>
+                                    <input type="number" id="manualTemperature" step="0.1" placeholder="25.5" class="form-control">
+                                </div>
+                                <div class="input-group">
+                                    <label>Dissolved Oxygen (mg/L)</label>
+                                    <input type="number" id="manualDO" step="0.1" placeholder="8.5" class="form-control">
+                                </div>
+                                <div class="input-group">
+                                    <label>pH Level</label>
+                                    <input type="number" id="manualPH" step="0.01" placeholder="7.2" class="form-control">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-block" onclick="runManualPrediction()">Analyze Manual Input</button>
+                        </div>
+                        
+                        <div id="futurePrediction" class="prediction-input" style="display: none;">
+                            <div class="prediction-description">
+                                <p>Forecast water quality for any future date and time using LSTM prediction model.</p>
+                            </div>
+                            <div class="input-group">
+                                <label>Target Date & Time</label>
+                                <input type="datetime-local" id="futureDateTime" class="form-control">
+                                <span class="hint">Select any future date up to 1 year ahead</span>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-block" onclick="runFuturePrediction()">Predict Future Quality</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Quality Score</h3>
-                    <div class="score-display" id="scoreDisplay">
-                        <div class="score-value" id="scoreValue">--</div>
-                        <div class="score-label" id="scoreLabel">--</div>
+                <div class="panel results-panel">
+                    <div class="panel-header-enhanced">
+                        <h3>Quality Score</h3>
+                        <div class="panel-subtitle">Current water quality assessment</div>
                     </div>
-                    <small id="timestamp"></small>
+                    <div class="score-display-enhanced" id="scoreDisplay">
+                        <div class="score-circle">
+                            <div class="score-value" id="scoreValue">--</div>
+                            <div class="score-label" id="scoreLabel">--</div>
+                        </div>
+                        <div class="score-details">
+                            <small id="timestamp">Awaiting analysis...</small>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Fish Health Risk</h3>
-                    <div class="risk-display" id="riskDisplay">
-                        <div class="risk-level" id="riskLevel">--</div>
+                <div class="panel results-panel">
+                    <div class="panel-header-enhanced">
+                        <h3>Fish Health Risk</h3>
+                        <div class="panel-subtitle">Species-specific risk assessment</div>
+                    </div>
+                    <div class="risk-display-enhanced" id="riskDisplay">
+                        <div class="risk-indicator">
+                            <div class="risk-level" id="riskLevel">--</div>
+                        </div>
                         <div class="risk-message" id="riskMessage">Awaiting prediction...</div>
                     </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Next Hour Prediction</h3>
-                    <p id="predictionTime" class="pred-time">--</p>
-                    <div class="pred-grid">
-                        <div class="pred-item">
-                            <span>Temperature</span>
-                            <strong id="predTemp">--</strong>
-                        </div>
-                        <div class="pred-item">
-                            <span>Dissolved O₂</span>
-                            <strong id="predDO">--</strong>
-                        </div>
-                        <div class="pred-item">
-                            <span>pH Level</span>
-                            <strong id="predPH">--</strong>
+                <div class="panel results-panel">
+                    <div class="panel-header-enhanced">
+                        <h3>Next Hour Forecast</h3>
+                        <div class="panel-subtitle">LSTM-based future predictions (Location modes only)</div>
+                    </div>
+                    <div class="prediction-display">
+                        <p id="predictionTime" class="pred-time">Select location-based prediction to see LSTM forecast</p>
+                        <div class="pred-grid-enhanced">
+                            <div class="pred-item-enhanced">
+                                <div class="pred-icon">T</div>
+                                <div class="pred-content">
+                                    <span class="pred-label">Temperature</span>
+                                    <strong id="predTemp" class="pred-value">--</strong>
+                                </div>
+                            </div>
+                            <div class="pred-item-enhanced">
+                                <div class="pred-icon">O₂</div>
+                                <div class="pred-content">
+                                    <span class="pred-label">Dissolved O₂</span>
+                                    <strong id="predDO" class="pred-value">--</strong>
+                                </div>
+                            </div>
+                            <div class="pred-item-enhanced">
+                                <div class="pred-icon">pH</div>
+                                <div class="pred-content">
+                                    <span class="pred-label">pH Level</span>
+                                    <strong id="predPH" class="pred-value">--</strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="panel">
-                    <h3>Recommendations</h3>
-                    <ul id="recommendationsList"></ul>
+                <div class="panel results-panel">
+                    <div class="panel-header-enhanced">
+                        <h3>Recommendations</h3>
+                        <div class="panel-subtitle">AI-generated insights and actions</div>
+                    </div>
+                    <div class="recommendations-display">
+                        <ul id="recommendationsList" class="recommendations-list"></ul>
+                    </div>
                 </div>
                 
                 <div class="panel">
-                    <h3>🎯 Smart Advisory</h3>
+                    <h3>Smart Advisory</h3>
                     <div id="smartAdvisory" class="smart-advisory">
                         <p>Select a species and location to get personalized cultivation advice</p>
+                    </div>
+                </div>
+                
+                <!-- Chart Data Controls - Only show after location is selected -->
+                <div id="chartDataControls" class="chart-data-controls" style="display: none; margin-top: 1rem;">
+                    <h3>Chart Data Controls</h3>
+                    <div class="date-range-section">
+                        <h4>Select Date Range for Charts</h4>
+                        <div class="date-inputs">
+                            <input type="date" id="commonFromDate" class="form-control">
+                            <span style="color: white; font-weight: 500;">to</span>
+                            <input type="date" id="commonToDate" class="form-control">
+                            <button type="button" onclick="applyCommonDateRange()">Apply to All Charts</button>
+                        </div>
+                    </div>
+                    <div class="refresh-section">
+                        <button type="button" onclick="refreshChartsData()">Load Chart Data</button>
+                        <div class="location-hint" id="selectedLocationHint">Charts will show data for selected location</div>
                     </div>
                 </div>
             </div>
@@ -181,7 +248,7 @@
                     <div style="position:relative;height:500px;">
                         <canvas id="chart1"></canvas>
                         <div id="chart1EmptyState" class="chart-empty-state">
-                            <p>📊 Historical Trends Chart</p>
+                            <p>Historical Trends Chart</p>
                             <p>This chart shows historical water quality trends for a specific location. Switch to GPS Coordinates or Select Location mode to view location-based data.</p>
                         </div>
                     </div>
@@ -201,7 +268,7 @@
                     <div style="position:relative;height:300px;">
                         <canvas id="chart2"></canvas>
                         <div id="chart2EmptyState" class="chart-empty-state">
-                            <p>🌡️ Temperature Trends</p>
+                            <p>Temperature Trends</p>
                             <p>Historical temperature data requires location information. Use GPS or location selection modes.</p>
                         </div>
                     </div>
@@ -221,7 +288,7 @@
                     <div style="position:relative;height:300px;">
                         <canvas id="chart3"></canvas>
                         <div id="chart3EmptyState" class="chart-empty-state">
-                            <p>💨 Oxygen Level Trends</p>
+                            <p>Oxygen Level Trends</p>
                             <p>Historical dissolved oxygen data requires location information. Use GPS or location selection modes.</p>
                         </div>
                     </div>
@@ -241,7 +308,7 @@
                     <div style="position:relative;height:300px;">
                         <canvas id="chart4"></canvas>
                         <div id="chart4EmptyState" class="chart-empty-state">
-                            <p>⚗️ pH Level Trends</p>
+                            <p>pH Level Trends</p>
                             <p>Historical pH data requires location information. Use GPS or location selection modes.</p>
                         </div>
                     </div>

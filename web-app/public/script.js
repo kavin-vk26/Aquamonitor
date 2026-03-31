@@ -30,13 +30,668 @@ function hideLoading() {
     }
 }
 
+// LSTM Modal Functions
+let currentModalMode = 'current';
+
+function openLSTMModal() {
+    const modal = document.getElementById('lstmModal');
+    if (modal) {
+        modal.style.display = 'block';
+        resetModalPrediction();
+        initializeModalDatetime();
+        
+        // Copy species selection from main form
+        const mainSpecies = document.getElementById('species-select');
+        const modalSpecies = document.getElementById('modalSpecies');
+        if (mainSpecies && modalSpecies) {
+            modalSpecies.value = mainSpecies.value;
+        }
+    }
+}
+
+function closeLSTMModal() {
+    const modal = document.getElementById('lstmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function switchModalMode(mode) {
+    currentModalMode = mode;
+    
+    // Update tab appearance
+    document.getElementById('modalCurrentTab').classList.toggle('active', mode === 'current');
+    document.getElementById('modalManualTab').classList.toggle('active', mode === 'manual');
+    document.getElementById('modalFutureTab').classList.toggle('active', mode === 'future');
+    
+    // Show/hide mode sections
+    document.getElementById('modalCurrentMode').style.display = mode === 'current' ? 'block' : 'none';
+    document.getElementById('modalManualMode').style.display = mode === 'manual' ? 'block' : 'none';
+    document.getElementById('modalFutureMode').style.display = mode === 'future' ? 'block' : 'none';
+}
+
+function resetModalPrediction() {
+    // Show input section, hide loading and results
+    document.getElementById('modalInputSection').style.display = 'block';
+    document.getElementById('modalLoadingSection').style.display = 'none';
+    document.getElementById('modalResultsSection').style.display = 'none';
+    
+    // Reset to current mode
+    switchModalMode('current');
+    
+    // Clear all inputs
+    const inputs = ['modalLatitude', 'modalLongitude', 'modalTemperature', 'modalDO', 'modalPH', 
+                   'modalFutureLatitude', 'modalFutureLongitude', 'modalFutureDateTime'];
+    inputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.value = '';
+    });
+}
+
+function initializeModalDatetime() {
+    const futureDateTime = document.getElementById('modalFutureDateTime');
+    if (futureDateTime) {
+        const now = new Date();
+        const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+        const minDateTimeString = minDateTime.toISOString().slice(0, 16);
+        futureDateTime.min = minDateTimeString;
+        
+        const maxDateTime = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+        const maxDateTimeString = maxDateTime.toISOString().slice(0, 16);
+        futureDateTime.max = maxDateTimeString;
+    }
+}
+
+function getModalLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('modalLatitude').value = pos.coords.latitude.toFixed(5);
+                document.getElementById('modalLongitude').value = pos.coords.longitude.toFixed(5);
+            },
+            err => alert('Unable to get location: ' + err.message)
+        );
+    } else {
+        alert('Geolocation not supported by this browser.');
+    }
+}
+
+function getModalFutureLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('modalFutureLatitude').value = pos.coords.latitude.toFixed(5);
+                document.getElementById('modalFutureLongitude').value = pos.coords.longitude.toFixed(5);
+            },
+            err => alert('Unable to get location: ' + err.message)
+        );
+    } else {
+        alert('Geolocation not supported by this browser.');
+    }
+}
+
+function showModalLoading(title = 'Processing LSTM Prediction') {
+    document.getElementById('modalInputSection').style.display = 'none';
+    document.getElementById('modalLoadingSection').style.display = 'block';
+    document.getElementById('modalResultsSection').style.display = 'none';
+    
+    document.getElementById('modalLoadingTitle').textContent = title;
+    document.getElementById('modalLoadingStep').textContent = 'Initializing...';
+    document.getElementById('modalLoadingProgressBar').style.width = '0%';
+}
+
+function updateModalLoadingStep(step, progress = 0) {
+    const loadingStep = document.getElementById('modalLoadingStep');
+    const progressBar = document.getElementById('modalLoadingProgressBar');
+    
+    if (loadingStep && progressBar) {
+        loadingStep.textContent = step;
+        progressBar.style.width = progress + '%';
+    }
+}
+
+function showModalResults() {
+    document.getElementById('modalInputSection').style.display = 'none';
+    document.getElementById('modalLoadingSection').style.display = 'none';
+    document.getElementById('modalResultsSection').style.display = 'block';
+}
+
+function runModalCurrentPrediction() {
+    const lat = parseFloat(document.getElementById('modalLatitude').value);
+    const lon = parseFloat(document.getElementById('modalLongitude').value);
+    const species = document.getElementById('modalSpecies').value;
+    
+    if (!lat || !lon) {
+        alert('Please enter latitude and longitude coordinates');
+        return;
+    }
+    
+    showModalLoading('LSTM Current Analysis');
+    updateModalLoadingStep('Connecting to weather API...', 20);
+    
+    fetch(addCacheBuster('/api/predict'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            latitude: lat,
+            longitude: lon,
+            species: species
+        })
+    })
+    .then(response => {
+        updateModalLoadingStep('Processing LSTM model...', 60);
+        return response.json();
+    })
+    .then(result => {
+        updateModalLoadingStep('Generating results...', 90);
+        setTimeout(() => {
+            handleModalPredictionResponse(result, `Current Analysis (${lat}, ${lon})`);
+        }, 500);
+    })
+    .catch(error => {
+        alert('LSTM prediction failed: ' + error.message);
+        resetModalPrediction();
+    });
+}
+
+function runModalManualPrediction() {
+    const temperature = parseFloat(document.getElementById('modalTemperature').value);
+    const do_val = parseFloat(document.getElementById('modalDO').value);
+    const ph = parseFloat(document.getElementById('modalPH').value);
+    const species = document.getElementById('modalSpecies').value;
+    
+    if (!temperature || !do_val || !ph) {
+        alert('Please fill in all water parameter fields');
+        return;
+    }
+    
+    showModalLoading('Manual Analysis Processing');
+    updateModalLoadingStep('Analyzing water parameters...', 40);
+    
+    fetch(addCacheBuster('/api/predict'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            temperature: temperature,
+            dissolved_oxygen: do_val,
+            ph: ph,
+            species: species
+        })
+    })
+    .then(response => {
+        updateModalLoadingStep('Calculating quality score...', 80);
+        return response.json();
+    })
+    .then(result => {
+        updateModalLoadingStep('Finalizing results...', 100);
+        setTimeout(() => {
+            handleModalPredictionResponse(result, `Manual Input Analysis`);
+        }, 300);
+    })
+    .catch(error => {
+        alert('Manual analysis failed: ' + error.message);
+        resetModalPrediction();
+    });
+}
+
+function runModalFuturePrediction() {
+    const lat = parseFloat(document.getElementById('modalFutureLatitude').value);
+    const lon = parseFloat(document.getElementById('modalFutureLongitude').value);
+    const datetime = document.getElementById('modalFutureDateTime').value;
+    const species = document.getElementById('modalSpecies').value;
+    
+    if (!lat || !lon) {
+        alert('Please enter latitude and longitude coordinates');
+        return;
+    }
+    
+    if (!datetime) {
+        alert('Please select a future date and time');
+        return;
+    }
+    
+    const targetDate = new Date(datetime);
+    const now = new Date();
+    if (targetDate <= now) {
+        alert('Please select a future date and time');
+        return;
+    }
+    
+    showModalLoading('LSTM Future Prediction');
+    updateModalLoadingStep('Fetching future weather data...', 30);
+    
+    fetch(addCacheBuster('/api/predict-future'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            latitude: lat,
+            longitude: lon,
+            target_datetime: datetime,
+            species: species
+        })
+    })
+    .then(response => {
+        updateModalLoadingStep('Running LSTM forecast model...', 70);
+        return response.json();
+    })
+    .then(result => {
+        updateModalLoadingStep('Generating forecast...', 95);
+        if (result.success) {
+            setTimeout(() => {
+                const modalResult = {
+                    quality_score: result.quality_score,
+                    quality_level: result.quality_level,
+                    color: result.color,
+                    recommendations: result.recommendations,
+                    timestamp: result.timestamp,
+                    predicted_values: result.predicted_values,
+                    prediction_time: result.target_datetime
+                };
+                handleModalPredictionResponse(modalResult, `Future Forecast (${lat}, ${lon})`);
+            }, 500);
+        } else {
+            throw new Error(result.error || 'Future prediction failed');
+        }
+    })
+    .catch(error => {
+        alert('LSTM future prediction failed: ' + error.message);
+        resetModalPrediction();
+    });
+}
+
+function handleModalPredictionResponse(data, locationInfo) {
+    if (data.error) {
+        alert('Error: ' + data.error);
+        resetModalPrediction();
+        return;
+    }
+    
+    // Update location info
+    document.getElementById('modalLocationInfo').textContent = locationInfo;
+    
+    // Update quality score
+    document.getElementById('modalScoreValue').textContent = data.quality_score;
+    document.getElementById('modalScoreLabel').textContent = data.quality_level;
+    document.getElementById('modalTimestamp').textContent = data.timestamp;
+    
+    const scoreDisplay = document.querySelector('#modalResultsSection .score-display-enhanced');
+    if (scoreDisplay) {
+        scoreDisplay.style.background = data.color;
+    }
+    
+    // Update parameters
+    if (data.predicted_values) {
+        document.getElementById('modalPredTemp').textContent = data.predicted_values.water_temp + ' °C';
+        document.getElementById('modalPredDO').textContent = data.predicted_values.do + ' mg/L';
+        document.getElementById('modalPredPH').textContent = data.predicted_values.ph;
+        
+        // Calculate and display risk
+        const risk = calculateFishHealthRisk(data.predicted_values.water_temp, data.predicted_values.do, data.predicted_values.ph);
+        document.getElementById('modalRiskDisplay').className = 'risk-display-enhanced ' + risk.class;
+        document.getElementById('modalRiskLevel').textContent = risk.level;
+        document.getElementById('modalRiskMessage').textContent = risk.message;
+    } else {
+        // For manual input, show the input values
+        document.getElementById('modalPredTemp').textContent = data.temperature + ' °C (Input)';
+        document.getElementById('modalPredDO').textContent = data.dissolved_oxygen + ' mg/L (Input)';
+        document.getElementById('modalPredPH').textContent = data.ph + ' (Input)';
+        
+        const risk = calculateFishHealthRisk(data.temperature, data.dissolved_oxygen, data.ph);
+        document.getElementById('modalRiskDisplay').className = 'risk-display-enhanced ' + risk.class;
+        document.getElementById('modalRiskLevel').textContent = risk.level;
+        document.getElementById('modalRiskMessage').textContent = risk.message;
+    }
+    
+    // Update recommendations
+    const recList = document.getElementById('modalRecommendationsList');
+    recList.innerHTML = '';
+    data.recommendations.forEach(rec => {
+        const li = document.createElement('li');
+        li.textContent = rec;
+        recList.appendChild(li);
+    });
+    
+    showModalResults();
+}
+
+// Make modal functions globally available
+window.openLSTMModal = openLSTMModal;
+window.closeLSTMModal = closeLSTMModal;
+window.switchModalMode = switchModalMode;
+window.resetModalPrediction = resetModalPrediction;
+window.getModalLocation = getModalLocation;
+window.getModalFutureLocation = getModalFutureLocation;
+window.runModalCurrentPrediction = runModalCurrentPrediction;
+window.runModalManualPrediction = runModalManualPrediction;
+window.runModalFuturePrediction = runModalFuturePrediction;
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('lstmModal');
+    if (event.target === modal) {
+        closeLSTMModal();
+    }
+});
+
 // Cache busting for API requests
 function addCacheBuster(url) {
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}_t=${Date.now()}&_r=${Math.random()}`;
 }
 
-// Analytics page location functions
+// New unified interface functions
+let currentLocationMode = 'coords';
+let currentPredictionMode = null;
+
+function switchLocationMode(mode) {
+    currentLocationMode = mode;
+    
+    // Update tab appearance
+    document.getElementById('coordsTab').classList.toggle('active', mode === 'coords');
+    document.getElementById('cityTab').classList.toggle('active', mode === 'city');
+    
+    // Show/hide location inputs
+    document.getElementById('coordsLocation').style.display = mode === 'coords' ? 'block' : 'none';
+    document.getElementById('cityLocation').style.display = mode === 'city' ? 'block' : 'none';
+    
+    saveState();
+}
+
+function switchPredictionMode(mode) {
+    currentPredictionMode = mode;
+    
+    // Update tab appearance
+    document.getElementById('currentTab').classList.toggle('active', mode === 'current');
+    document.getElementById('manualTab').classList.toggle('active', mode === 'manual');
+    document.getElementById('futureTab').classList.toggle('active', mode === 'future');
+    
+    // Show/hide prediction inputs
+    document.getElementById('currentPrediction').style.display = mode === 'current' ? 'block' : 'none';
+    document.getElementById('manualPrediction').style.display = mode === 'manual' ? 'block' : 'none';
+    document.getElementById('futurePrediction').style.display = mode === 'future' ? 'block' : 'none';
+    
+    // Initialize future datetime picker when future mode is selected
+    if (mode === 'future') {
+        const futureDateTime = document.getElementById('futureDateTime');
+        if (futureDateTime) {
+            const now = new Date();
+            const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+            const minDateTimeString = minDateTime.toISOString().slice(0, 16);
+            futureDateTime.min = minDateTimeString;
+            
+            const maxDateTime = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+            const maxDateTimeString = maxDateTime.toISOString().slice(0, 16);
+            futureDateTime.max = maxDateTimeString;
+            
+            futureDateTime.value = '';
+        }
+    }
+    
+    saveState();
+}
+
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('mainLatitude').value = pos.coords.latitude.toFixed(5);
+                document.getElementById('mainLongitude').value = pos.coords.longitude.toFixed(5);
+            },
+            err => alert('Unable to get location: ' + err.message)
+        );
+    } else {
+        alert('Geolocation not supported by this browser.');
+    }
+}
+
+function filterMainLocations() {
+    const searchText = document.getElementById('mainLocationSearch').value.toLowerCase();
+    const dropdown = document.getElementById('mainLocationDropdown');
+    if (!searchText) { dropdown.classList.remove('show'); return; }
+    const filtered = indianCities.filter(c => c.name.toLowerCase().includes(searchText));
+    if (!filtered.length) {
+        dropdown.innerHTML = '<div class="location-item">No locations found</div>';
+    } else {
+        dropdown.innerHTML = filtered.map(c =>
+            `<div class="location-item" onclick="selectMainLocation('${c.name}',${c.lat},${c.lon})">${c.name}</div>`
+        ).join('');
+    }
+    dropdown.classList.add('show');
+}
+
+function selectMainLocation(name, lat, lon) {
+    document.getElementById('mainLocationSearch').value = name;
+    document.getElementById('mainLatitude').value = lat;
+    document.getElementById('mainLongitude').value = lon;
+    document.getElementById('mainLocationHint').textContent = `Selected: ${name} (${lat}, ${lon})`;
+    document.getElementById('mainLocationDropdown').classList.remove('show');
+}
+
+function getLocationCoordinates() {
+    if (currentLocationMode === 'coords') {
+        const lat = parseFloat(document.getElementById('mainLatitude').value);
+        const lon = parseFloat(document.getElementById('mainLongitude').value);
+        return { lat, lon };
+    } else {
+        const lat = parseFloat(document.getElementById('mainLatitude').value);
+        const lon = parseFloat(document.getElementById('mainLongitude').value);
+        return { lat, lon };
+    }
+}
+
+function runCurrentPrediction() {
+    const coords = getLocationCoordinates();
+    if (!coords.lat || !coords.lon) {
+        alert('Please set location coordinates first');
+        return;
+    }
+    
+    currentLocation = { latitude: coords.lat, longitude: coords.lon };
+    saveState();
+    
+    showLoading('LSTM Water Quality Analysis');
+    
+    fetch(addCacheBuster('/api/predict'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            latitude: coords.lat,
+            longitude: coords.lon,
+            species: document.getElementById('species-select').value
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        // Location-based predictions use full LSTM analysis with next-hour forecasting
+        handleLSTMPredictionResponse(result);
+        
+        // Show chart controls after successful prediction
+        const chartControls = document.getElementById('chartDataControls');
+        if (chartControls) {
+            chartControls.style.display = 'block';
+            const hint = document.getElementById('selectedLocationHint');
+            if (hint) hint.textContent = `Charts will show data for coordinates: ${coords.lat}, ${coords.lon}`;
+        }
+    })
+    .catch(error => alert('LSTM prediction failed: ' + error.message))
+    .finally(() => hideLoading());
+}
+
+function handleLSTMPredictionResponse(data) {
+    if (data.error) { alert('Error: ' + data.error); return; }
+    lastPrediction = data;
+    saveState();
+    
+    // Update quality score from LSTM analysis
+    document.getElementById('scoreValue').textContent = data.quality_score;
+    document.getElementById('scoreLabel').textContent = data.quality_level;
+    document.getElementById('timestamp').textContent = 'LSTM Analysis: ' + data.timestamp;
+    document.getElementById('scoreDisplay').style.background = data.color;
+    
+    // Update LSTM-generated recommendations
+    const recList = document.getElementById('recommendationsList');
+    recList.innerHTML = '';
+    data.recommendations.forEach(rec => {
+        const li = document.createElement('li'); 
+        li.textContent = rec; 
+        recList.appendChild(li);
+    });
+    
+    // LSTM predictions include next-hour forecasting
+    if (data.predicted_values) {
+        document.getElementById('predictionTime').textContent = 'LSTM Next-Hour Forecast: ' + data.prediction_time;
+        document.getElementById('predTemp').textContent = data.predicted_values.water_temp + ' °C';
+        document.getElementById('predDO').textContent = data.predicted_values.do + ' mg/L';
+        document.getElementById('predPH').textContent = data.predicted_values.ph;
+        
+        // Fish health risk from LSTM predicted values
+        const risk = calculateFishHealthRisk(data.predicted_values.water_temp, data.predicted_values.do, data.predicted_values.ph);
+        document.getElementById('riskDisplay').className = 'risk-display-enhanced ' + risk.class;
+        document.getElementById('riskLevel').textContent = risk.level;
+        document.getElementById('riskMessage').textContent = risk.message;
+    }
+    
+    // Generate smart advisory from LSTM analysis
+    generateSmartAdvisory();
+}
+
+function runManualPrediction() {
+    const temperature = parseFloat(document.getElementById('manualTemperature').value);
+    const do_val = parseFloat(document.getElementById('manualDO').value);
+    const ph = parseFloat(document.getElementById('manualPH').value);
+    
+    if (!temperature || !do_val || !ph) {
+        alert('Please fill in all water parameter fields');
+        return;
+    }
+    
+    showLoading('Manual Water Quality Analysis');
+    
+    fetch(addCacheBuster('/api/predict'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            temperature: temperature,
+            dissolved_oxygen: do_val,
+            ph: ph,
+            species: document.getElementById('species-select').value
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        // Manual input only shows current analysis - no "next hour" prediction
+        handleManualPredictionResponse(result);
+    })
+    .catch(error => alert('Manual analysis failed: ' + error.message))
+    .finally(() => hideLoading());
+}
+
+function handleManualPredictionResponse(data) {
+    if (data.error) { alert('Error: ' + data.error); return; }
+    lastPrediction = data;
+    saveState();
+    
+    // Update quality score
+    document.getElementById('scoreValue').textContent = data.quality_score;
+    document.getElementById('scoreLabel').textContent = data.quality_level;
+    document.getElementById('timestamp').textContent = 'Updated: ' + data.timestamp;
+    document.getElementById('scoreDisplay').style.background = data.color;
+    
+    // Update recommendations
+    const recList = document.getElementById('recommendationsList');
+    recList.innerHTML = '';
+    data.recommendations.forEach(rec => {
+        const li = document.createElement('li'); 
+        li.textContent = rec; 
+        recList.appendChild(li);
+    });
+    
+    // For manual input - show current analysis, not "next hour prediction"
+    document.getElementById('predictionTime').textContent = 'Current Analysis Results';
+    document.getElementById('predTemp').textContent = data.temperature + ' °C (Input)';
+    document.getElementById('predDO').textContent = data.dissolved_oxygen + ' mg/L (Input)';
+    document.getElementById('predPH').textContent = data.ph + ' (Input)';
+    
+    // Calculate fish health risk from manual inputs
+    const risk = calculateFishHealthRisk(data.temperature, data.dissolved_oxygen, data.ph);
+    document.getElementById('riskDisplay').className = 'risk-display-enhanced ' + risk.class;
+    document.getElementById('riskLevel').textContent = risk.level;
+    document.getElementById('riskMessage').textContent = risk.message;
+    
+    // Generate smart advisory for manual input
+    generateSmartAdvisory();
+}
+
+function runFuturePrediction() {
+    const coords = getLocationCoordinates();
+    const datetime = document.getElementById('futureDateTime').value;
+    
+    if (!coords.lat || !coords.lon) {
+        alert('Please set location coordinates first');
+        return;
+    }
+    
+    if (!datetime) {
+        alert('Please select a future date and time');
+        return;
+    }
+    
+    // Validate future date
+    const targetDate = new Date(datetime);
+    const now = new Date();
+    if (targetDate <= now) {
+        alert('Please select a future date and time');
+        return;
+    }
+    
+    const oneYearFromNow = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+    if (targetDate > oneYearFromNow) {
+        alert('Cannot predict more than 1 year into the future');
+        return;
+    }
+    
+    showLoading('LSTM Future Prediction Analysis');
+    
+    fetch(addCacheBuster('/api/predict-future'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            latitude: coords.lat,
+            longitude: coords.lon,
+            target_datetime: datetime,
+            species: document.getElementById('species-select').value
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Future predictions use specialized LSTM future forecasting
+            handleLSTMPredictionResponse({
+                quality_score: result.quality_score,
+                quality_level: result.quality_level,
+                color: result.color,
+                recommendations: result.recommendations,
+                timestamp: result.timestamp,
+                predicted_values: result.predicted_values,
+                prediction_time: result.target_datetime
+            });
+        } else {
+            throw new Error(result.error || 'Future prediction failed');
+        }
+    })
+    .catch(error => alert('LSTM future prediction failed: ' + error.message))
+    .finally(() => hideLoading());
+}
+
+// Make functions globally available
+window.switchLocationMode = switchLocationMode;
+window.switchPredictionMode = switchPredictionMode;
+window.getCurrentLocation = getCurrentLocation;
+window.filterMainLocations = filterMainLocations;
+window.selectMainLocation = selectMainLocation;
+window.runCurrentPrediction = runCurrentPrediction;
+window.runManualPrediction = runManualPrediction;
+window.runFuturePrediction = runFuturePrediction;
 function getAnalyticsLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -135,6 +790,9 @@ window.getAnalyticsLocation = getAnalyticsLocation;
 window.filterAnalyticsLocations = filterAnalyticsLocations;
 window.selectAnalyticsLocation = selectAnalyticsLocation;
 window.loadAnalyticsData = loadAnalyticsData;
+
+// Remove all old functions that are no longer needed
+// Keep only essential functions for the unified interface
 
 async function loadHistoricalDataForAnalytics(lat, lon, startDate, endDate) {
     const latitude = lat || currentLocation.latitude || 11.0168;
@@ -376,6 +1034,20 @@ function loadSavedState() {
         }
         
         if (savedMode) switchMode(savedMode);
+        else {
+            // Default to no mode selected - all forms hidden
+            currentMode = null;
+            const forms = ['predictionForm', 'locationForm', 'presetForm', 'futureForm'];
+            forms.forEach(formId => {
+                const form = document.getElementById(formId);
+                if (form) form.style.display = 'none';
+            });
+            const buttons = ['manualBtn', 'locationBtn', 'presetBtn', 'futureBtn'];
+            buttons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) btn.classList.remove('active');
+            });
+        }
         
         // Restore analytics table if on analytics page and data exists
         if (window.analyticsData && (window.location.pathname.includes('analytics') || window.location.href.includes('analytics'))) {
@@ -443,37 +1115,7 @@ function calculateFishHealthRisk(temp, do_val, ph) {
     return { level: riskLevel, class: riskClass, message: messages.join(' ') };
 }
 
-function switchMode(mode) {
-    currentMode = mode;
-    const formMap = { manual: 'predictionForm', location: 'locationForm', preset: 'presetForm' };
-    const btnMap = { manual: 'manualBtn', location: 'locationBtn', preset: 'presetBtn' };
-    Object.keys(formMap).forEach(m => {
-        const btn = document.getElementById(btnMap[m]);
-        const form = document.getElementById(formMap[m]);
-        if (btn) btn.classList.toggle('active', m === mode);
-        if (form) form.style.display = m === mode ? 'block' : 'none';
-    });
-    
-    // Clear charts and show appropriate empty states when switching modes
-    clearChartsOnModeSwitch(mode);
-    
-    // Hide chart controls for manual mode, show for location-based modes
-    const chartControls = document.getElementById('chartDataControls');
-    if (chartControls) {
-        if (mode === 'manual') {
-            chartControls.style.display = 'none';
-            // Update empty state messages for manual mode
-            updateChartEmptyStates('manual');
-        } else {
-            // Update empty state messages for location modes
-            updateChartEmptyStates('location');
-        }
-        // For location and preset modes, chart controls will be shown after successful prediction
-    }
-    
-    // Save state after mode change
-    saveState();
-}
+// Old switchMode function removed - now using unified interface with switchLocationMode and switchPredictionMode
 
 function clearChartsOnModeSwitch(mode) {
     // Destroy existing charts
@@ -506,16 +1148,16 @@ function clearChartsOnModeSwitch(mode) {
 function updateChartEmptyStates(mode) {
     const emptyStates = {
         manual: {
-            chart1: { title: '📊 Historical Trends Chart', message: 'This shows location-based historical trends. Your manual analysis appears in the sidebar panels.' },
-            chart2: { title: '🌡️ Temperature History', message: 'Historical temperature trends require location data. Your current temperature analysis is in the sidebar.' },
-            chart3: { title: '💨 Oxygen Level History', message: 'Historical dissolved oxygen trends require location data. Your current DO analysis is in the sidebar.' },
-            chart4: { title: '⚗️ pH Level History', message: 'Historical pH trends require location data. Your current pH analysis is in the sidebar.' }
+            chart1: { title: 'Historical Trends Chart', message: 'This shows location-based historical trends. Your manual analysis appears in the sidebar panels.' },
+            chart2: { title: 'Temperature History', message: 'Historical temperature trends require location data. Your current temperature analysis is in the sidebar.' },
+            chart3: { title: 'Oxygen Level History', message: 'Historical dissolved oxygen trends require location data. Your current DO analysis is in the sidebar.' },
+            chart4: { title: 'pH Level History', message: 'Historical pH trends require location data. Your current pH analysis is in the sidebar.' }
         },
         location: {
-            chart1: { title: '📊 Historical Trends Chart', message: 'Select a location and date range, then click "Load Data" to view historical trends.' },
-            chart2: { title: '🌡️ Temperature Trends', message: 'Click "Load Data" to view temperature history for your selected location.' },
-            chart3: { title: '💨 Oxygen Level Trends', message: 'Click "Load Data" to view dissolved oxygen history for your selected location.' },
-            chart4: { title: '⚗️ pH Level Trends', message: 'Click "Load Data" to view pH history for your selected location.' }
+            chart1: { title: 'Historical Trends Chart', message: 'Select a location and date range, then click "Load Data" to view historical trends.' },
+            chart2: { title: 'Temperature Trends', message: 'Click "Load Data" to view temperature history for your selected location.' },
+            chart3: { title: 'Oxygen Level Trends', message: 'Click "Load Data" to view dissolved oxygen history for your selected location.' },
+            chart4: { title: 'pH Level Trends', message: 'Click "Load Data" to view pH history for your selected location.' }
         }
     };
     
@@ -532,48 +1174,7 @@ function updateChartEmptyStates(mode) {
     }
 }
 
-function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                document.getElementById('latitude').value = pos.coords.latitude.toFixed(5);
-                document.getElementById('longitude').value = pos.coords.longitude.toFixed(5);
-            },
-            err => alert('Unable to get location: ' + err.message)
-        );
-    } else alert('Geolocation not supported.');
-}
-
-function filterLocations() {
-    const searchText = document.getElementById('locationSearch').value.toLowerCase();
-    const dropdown = document.getElementById('locationDropdown');
-    if (!searchText) { dropdown.classList.remove('show'); return; }
-    const filtered = indianCities.filter(c => c.name.toLowerCase().includes(searchText));
-    if (!filtered.length) {
-        dropdown.innerHTML = '<div class="location-item">No locations found</div>';
-    } else {
-        dropdown.innerHTML = filtered.map(c =>
-            `<div class="location-item" onclick="selectLocation('${c.name}',${c.lat},${c.lon})">${c.name}</div>`
-        ).join('');
-    }
-    dropdown.classList.add('show');
-}
-
-function selectLocation(name, lat, lon) {
-    document.getElementById('locationSearch').value = name;
-    document.getElementById('selectedLat').value = lat;
-    document.getElementById('selectedLon').value = lon;
-    document.getElementById('presetCoords').textContent = `Lat: ${lat}, Lon: ${lon}`;
-    document.getElementById('locationDropdown').classList.remove('show');
-}
-
-document.addEventListener('click', function(e) {
-    const search = document.getElementById('locationSearch');
-    const dropdown = document.getElementById('locationDropdown');
-    if (search && dropdown && !search.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.classList.remove('show');
-    }
-});
+// Removed old functions - using unified interface now
 
 function applyCommonDateRange() {
     const fromDate = document.getElementById('commonFromDate').value;
@@ -1233,10 +1834,14 @@ async function handlePredictionResponse(data) {
 }
 
 window.addEventListener('load', () => {
-    console.log('Dashboard page loaded - no automatic data fetching');
+    console.log('Dashboard page loaded - unified interface');
     
     loadSavedState();
     initializeDateInputs();
+    
+    // Initialize the unified interface
+    switchLocationMode('coords'); // Default to coordinates
+    // No prediction mode selected by default - user must choose
     
     // Initialize empty states for charts
     for (let i = 1; i <= 4; i++) {
@@ -1248,126 +1853,35 @@ window.addEventListener('load', () => {
     
     // Generate initial smart advisory
     setTimeout(() => generateSmartAdvisory(), 500);
-
-    const predForm = document.getElementById('predictionForm');
-    if (predForm) {
-        predForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            showLoading('Water Quality Analysis');
-            
-            try {
-                updateLoadingStep('Validating input parameters...', 20);
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                updateLoadingStep('Processing water quality data...', 50);
-                const res = await fetch(addCacheBuster('/api/predict'), {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        temperature: parseFloat(document.getElementById('temperature').value),
-                        dissolved_oxygen: parseFloat(document.getElementById('dissolved_oxygen').value),
-                        ph: parseFloat(document.getElementById('ph').value),
-                        species: document.getElementById('species-select').value
-                    })
-                });
-                
-                updateLoadingStep('Analyzing results and generating recommendations...', 80);
-                await handlePredictionResponse(await res.json());
-                
-                updateLoadingStep('Complete!', 100);
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // Save state after successful prediction
-                saveState();
-            } catch (err) { 
-                alert('Error: ' + err.message); 
-            } finally { 
-                hideLoading();
-            }
-        });
+    
+    // Initialize future datetime picker with proper min value
+    const futureDatetime = document.getElementById('futureDatetime');
+    if (futureDatetime) {
+        const now = new Date();
+        // Add 1 hour to current time as minimum
+        const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+        const minDateTimeString = minDateTime.toISOString().slice(0, 16);
+        futureDatetime.min = minDateTimeString;
+        
+        // Set max to 1 year from now
+        const maxDateTime = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+        const maxDateTimeString = maxDateTime.toISOString().slice(0, 16);
+        futureDatetime.max = maxDateTimeString;
+        
+        console.log('Future datetime picker initialized:', minDateTimeString, 'to', maxDateTimeString);
     }
-
-    const locForm = document.getElementById('locationForm');
-    if (locForm) {
-        locForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            const lat = parseFloat(document.getElementById('latitude').value);
-            const lon = parseFloat(document.getElementById('longitude').value);
-            if (!lat || !lon) { alert('Please enter valid latitude and longitude.'); return; }
-            
-            currentLocation = { latitude: lat, longitude: lon };
-            saveState();
-            showLoading('LSTM Prediction Analysis');
-            
-            try {
-                updateLoadingStep('Validating coordinates...', 15);
-                await new Promise(resolve => setTimeout(resolve, 400));
-                
-                updateLoadingStep('Fetching weather data from location...', 35);
-                await new Promise(resolve => setTimeout(resolve, 600));
-                
-                updateLoadingStep('Running LSTM neural network prediction...', 60);
-                const res = await fetch(addCacheBuster('/api/predict'), {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ latitude: lat, longitude: lon, species: document.getElementById('species-select').value })
-                });
-                
-                updateLoadingStep('Processing prediction results...', 75);
-                await handlePredictionResponse(await res.json());
-                
-                // Show chart controls after successful location-based prediction
-                const chartControls = document.getElementById('chartDataControls');
-                if (chartControls) {
-                    chartControls.style.display = 'block';
-                    const hint = document.getElementById('selectedLocationHint');
-                    if (hint) hint.textContent = `Charts will show data for coordinates: ${lat}, ${lon}`;
-                }
-                
-                updateLoadingStep('Analysis complete!', 100);
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // Save state after successful prediction
-                saveState();
-            } catch (err) { 
-                alert('Error: ' + err.message); 
-            } finally { 
-                hideLoading();
-            }
-        });
+    // Initialize empty states for charts
+    for (let i = 1; i <= 4; i++) {
+        const emptyState = document.getElementById(`chart${i}EmptyState`);
+        if (emptyState && (!allChartData || !allChartData.length)) {
+            emptyState.style.display = 'block';
+        }
     }
+    
+    // Generate initial smart advisory
+    setTimeout(() => generateSmartAdvisory(), 500);
 
-    const presetForm = document.getElementById('presetForm');
-    if (presetForm) {
-        presetForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            const lat = parseFloat(document.getElementById('selectedLat').value);
-            const lon = parseFloat(document.getElementById('selectedLon').value);
-            if (!lat || !lon) { alert('Please select a location from the dropdown'); return; }
-            currentLocation = { latitude: lat, longitude: lon };
-            saveState();
-            document.getElementById('loading').style.display = 'flex';
-            try {
-                updateLoadingStep('Running LSTM neural network prediction...', 60);
-                const res = await fetch(addCacheBuster('/api/predict'), {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ latitude: lat, longitude: lon, species: document.getElementById('species-select').value })
-                });
-                await handlePredictionResponse(await res.json());
-                
-                // Show chart controls after successful preset location prediction
-                const chartControls = document.getElementById('chartDataControls');
-                if (chartControls) {
-                    chartControls.style.display = 'block';
-                    const hint = document.getElementById('selectedLocationHint');
-                    const locationName = document.getElementById('locationSearch').value;
-                    if (hint) hint.textContent = `Charts will show data for: ${locationName} (${lat}, ${lon})`;
-                }
-                
-                // Save state after successful prediction
-                saveState();
-            } catch (err) { alert('Error: ' + err.message); }
-            finally { document.getElementById('loading').style.display = 'none'; }
-        });
-    }
+    // All predictions now use the unified interface - no old form listeners needed
 
     const downloadBtn = document.getElementById('downloadBtn');
     if (downloadBtn) {

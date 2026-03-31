@@ -194,6 +194,71 @@ app.post('/api/predict', (req, res) => {
     });
 });
 
+// Future datetime prediction API
+app.post('/api/predict-future', (req, res) => {
+    console.log(`🔮 Future prediction request received:`, req.body);
+    
+    const { latitude, longitude, target_datetime, species } = req.body;
+    const selectedSpecies = species || 'general';
+    
+    if (!latitude || !longitude || !target_datetime) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Missing required parameters: latitude, longitude, target_datetime' 
+        });
+    }
+    
+    console.log(`🔮 Predicting for ${target_datetime} at coordinates: ${latitude}, ${longitude}`);
+    
+    const python = spawn('python', [
+        path.join(__dirname, 'predict_future_datetime.py'),
+        latitude,
+        longitude,
+        target_datetime,
+        selectedSpecies
+    ]);
+    
+    let result = '';
+    let errorOutput = '';
+    
+    python.stdout.on('data', (data) => {
+        result += data.toString();
+    });
+    
+    python.stderr.on('data', (data) => {
+        const msg = data.toString();
+        if (!msg.includes('oneDNN') && !msg.includes('UserWarning') && !msg.includes('INFO:')) {
+            errorOutput += msg;
+            console.error(`❌ Future Prediction Error: ${msg}`);
+        }
+    });
+    
+    python.on('close', (code) => {
+        console.log(`🔮 Future prediction process completed with code: ${code}`);
+        
+        if (code !== 0 && errorOutput) {
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Future prediction failed', 
+                details: errorOutput 
+            });
+        }
+        
+        try {
+            const parsed = JSON.parse(result);
+            console.log(`✅ Future prediction successful for ${target_datetime}`);
+            res.json(parsed);
+        } catch (e) {
+            console.error(`❌ Future prediction JSON parse error:`, e);
+            res.status(500).json({ 
+                success: false, 
+                error: 'Future prediction failed', 
+                details: result 
+            });
+        }
+    });
+});
+
 // Fetch data API with enhanced logging
 app.get('/api/fetch-data', (req, res) => {
     const lat = req.query.latitude || 10.98267;
