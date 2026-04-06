@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AquaMonitor - Farm Management</title>
+    <link rel="stylesheet" href="styles.css?v=1.0">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">AquaMonitor</div>
+            <nav class="nav">
+                <a href="home.html">Home</a>
+                <a href="dashboard.html">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="multi-location.html" class="active">Farm Management</a>
+                <a href="predator.html">Predator Detection</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="multi-location-main">
+        <div class="container">
+            <div class="page-header">
+                <h1>Aqua Farm Management System</h1>
+                <p class="page-subtitle">Manage multiple farm locations and species for comprehensive water quality monitoring</p>
+            </div>
+
+            <!-- Farm Login Panel -->
+            <div class="panel login-panel" id="loginPanel">
+                <h3>Farm Authentication</h3>
+                <div class="login-form">
+                    <div class="input-group">
+                        <label>Farm Name</label>
+                        <input type="text" id="farmName" placeholder="Enter your aqua farm name" class="form-control">
+                    </div>
+                    <div class="input-group">
+                        <label>Farm ID</label>
+                        <input type="text" id="farmId" placeholder="Enter your farm ID" class="form-control">
+                    </div>
+                    <button id="loginBtn" class="btn btn-primary btn-block">Access Farm Dashboard</button>
+                </div>
+                
+                <div class="auth-actions">
+                    <button id="registerFarmBtn" class="btn btn-secondary btn-block">Register New Farm</button>
+                </div>
+                
+                <div class="demo-credentials">
+                    <h4>Demo Credentials:</h4>
+                    <p><strong>Farm Name:</strong> Blue Ocean Aquaculture</p>
+                    <p><strong>Farm ID:</strong> BOA2024</p>
+                </div>
+            </div>
+
+            <!-- Farm Registration Modal -->
+            <div id="registrationModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Register New Aqua Farm</h3>
+                        <span class="modal-close" onclick="closeRegistrationModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="registrationForm">
+                            <div class="input-group">
+                                <label>Farm Name *</label>
+                                <input type="text" id="regFarmName" placeholder="e.g., Blue Ocean Aquaculture" class="form-control" required>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Farm ID *</label>
+                                <input type="text" id="regFarmId" placeholder="e.g., BOA2024 (unique identifier)" class="form-control" required>
+                                <span class="hint">This will be your unique farm identifier for login</span>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Password *</label>
+                                <input type="password" id="regPassword" placeholder="Enter secure password" class="form-control" required>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Owner Name</label>
+                                <input type="text" id="regOwnerName" placeholder="Farm owner's full name" class="form-control">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Contact Email</label>
+                                <input type="email" id="regContactEmail" placeholder="contact@yourfarm.com" class="form-control">
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Contact Phone</label>
+                                <input type="tel" id="regContactPhone" placeholder="+91-9876543210" class="form-control">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" id="saveRegistrationBtn" class="btn btn-primary">Register Farm</button>
+                        <button type="button" onclick="closeRegistrationModal()" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Farm Dashboard -->
+            <div class="farm-dashboard" id="farmDashboard" style="display: none;">
+                <div class="dashboard-header">
+                    <div class="farm-info">
+                        <h2 id="farmTitle">Blue Ocean Aquaculture</h2>
+                        <p id="farmDetails">Farm ID: BOA2024 | Established: 2020 | Total Locations: 5</p>
+                    </div>
+                    <div class="dashboard-actions">
+                        <button id="addLocationBtn" class="btn btn-primary">Add Location</button>
+                        <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                    </div>
+                </div>
+
+                <!-- Farm Locations Panel -->
+                <div class="panel locations-panel">
+                    <div class="panel-header">
+                        <h3>Farm Locations</h3>
+                        <div class="location-controls">
+                            <button id="selectAllBtn" class="btn btn-sm btn-secondary">Select All</button>
+                            <button id="deselectAllBtn" class="btn btn-sm btn-secondary">Deselect All</button>
+                            <button id="analyzeSelectedBtn" class="btn btn-sm btn-primary">Analyze Selected</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="locationsTable">
+                            <thead>
+                                <tr>
+                                    <th width="50">Select</th>
+                                    <th width="200">Location Name</th>
+                                    <th width="120">Coordinates</th>
+                                    <th width="150">Primary Species</th>
+                                    <th width="100">Status</th>
+                                    <th width="120">Last Updated</th>
+                                    <th width="100">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="locationsTableBody">
+                                <!-- Locations will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="no-locations" id="noLocations" style="display: none;">
+                        <p>No locations found for this farm.</p>
+                        <button class="btn btn-primary" onclick="showAddLocationModal()">Add Your First Location</button>
+                    </div>
+                </div>
+
+                <!-- Analysis Results Panel -->
+                <div class="panel analysis-results-panel" id="analysisResultsPanel" style="display: none;">
+                    <div class="panel-header">
+                        <h3>Multi-Location Analysis Results</h3>
+                        <div class="analysis-summary">
+                            <span id="analyzedCount">0 locations analyzed</span>
+                            <span id="analysisTime">Analysis completed at: --</span>
+                        </div>
+                    </div>
+                    
+                    <div class="results-grid" id="resultsGrid">
+                        <!-- Analysis results will be populated here -->
+                    </div>
+                    
+                    <div class="analysis-actions">
+                        <button id="exportResultsBtn" class="btn btn-primary">Export Results</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add/Edit Location Modal -->
+            <div id="locationModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">Add New Location</h3>
+                        <span class="modal-close" onclick="closeLocationModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="locationForm">
+                            <div class="input-group">
+                                <label>Location Name *</label>
+                                <input type="text" id="locationName" placeholder="e.g., Pond A, Tank 1, Coastal Site" class="form-control" required>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem;">
+                                <div class="input-group" style="flex: 1;">
+                                    <label>Latitude *</label>
+                                    <input type="number" id="locationLat" step="0.00001" placeholder="11.0168" class="form-control" required>
+                                </div>
+                                <div class="input-group" style="flex: 1;">
+                                    <label>Longitude *</label>
+                                    <input type="number" id="locationLon" step="0.00001" placeholder="76.9558" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Primary Species *</label>
+                                <select id="locationSpecies" class="form-control" required>
+                                    <option value="">Select Primary Species</option>
+                                    <option value="general">General Fish</option>
+                                    <option value="tilapia">Tilapia</option>
+                                    <option value="catfish">Catfish</option>
+                                    <option value="salmon">Salmon</option>
+                                    <option value="trout">Trout</option>
+                                    <option value="carp">Carp</option>
+                                    <option value="shrimp">Shrimp (Penaeus)</option>
+                                    <option value="prawn">Freshwater Prawn</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Secondary Species (Optional)</label>
+                                <select id="locationSecondarySpecies" class="form-control">
+                                    <option value="">None</option>
+                                    <option value="general">General Fish</option>
+                                    <option value="tilapia">Tilapia</option>
+                                    <option value="catfish">Catfish</option>
+                                    <option value="salmon">Salmon</option>
+                                    <option value="trout">Trout</option>
+                                    <option value="carp">Carp</option>
+                                    <option value="shrimp">Shrimp (Penaeus)</option>
+                                    <option value="prawn">Freshwater Prawn</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Location Type</label>
+                                <select id="locationType" class="form-control">
+                                    <option value="pond">Pond</option>
+                                    <option value="tank">Tank</option>
+                                    <option value="cage">Cage</option>
+                                    <option value="raceway">Raceway</option>
+                                    <option value="coastal">Coastal</option>
+                                    <option value="indoor">Indoor System</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Status</label>
+                                <select id="locationStatus" class="form-control">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="maintenance">Under Maintenance</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Notes</label>
+                                <textarea id="locationNotes" placeholder="Additional notes about this location..." class="form-control" rows="3"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" id="saveLocationBtn" class="btn btn-primary">Save Location</button>
+                        <button type="button" onclick="closeLocationModal()" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Details Modal -->
+            <div id="analysisModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="analysisModalTitle">Location Analysis Details</h3>
+                        <span class="modal-close" onclick="closeAnalysisModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div id="analysisDetails">
+                            <!-- Analysis details will be populated here -->
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" id="viewChartsBtn" class="btn btn-primary">View Charts</button>
+                        <button type="button" id="exportDataBtn" class="btn btn-secondary">Export Data</button>
+                        <button type="button" onclick="closeAnalysisModal()" class="btn btn-secondary">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Modal -->
+            <div id="chartModal" class="modal" style="display: none;">
+                <div class="modal-content chart-modal-content">
+                    <div class="modal-header">
+                        <h3 id="chartModalTitle">Water Quality Charts</h3>
+                        <span class="modal-close" onclick="closeChartModal()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="chart-controls">
+                            <div class="date-range-controls">
+                                <label>Start Date:</label>
+                                <input type="date" id="chartStartDate" class="form-control">
+                                <label>End Date:</label>
+                                <input type="date" id="chartEndDate" class="form-control">
+                                <button id="loadChartDataBtn" class="btn btn-primary">Load Chart Data</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="multiLocationChart" width="800" height="400"></canvas>
+                        </div>
+                        <div id="chartLoadingIndicator" class="loading-indicator" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Loading chart data...</p>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" id="exportChartDataBtn" class="btn btn-primary">Export Chart Data</button>
+                        <button type="button" onclick="closeChartModal()" class="btn btn-secondary">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loadingMessage">Processing farm data...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>AquaMonitor</h4>
+                    <p>Professional water quality monitoring solution for aquaculture industry</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="dashboard.html">Dashboard</a></li>
+                        <li><a href="analytics.html">Analytics</a></li>
+                        <li><a href="multi-location.html">Farm Management</a></li>
+                        <li><a href="predator.html">Predator Detection</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Email: info@aquamonitor.com</p>
+                    <p>Phone: 8870958705</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 AquaMonitor. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js?v=1.0"></script>
+    <script src="multi-location.js?v=1.0"></script>
+</body>
+</html>

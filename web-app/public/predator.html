@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AquaMonitor - Predator Detection</title>
+    <link rel="stylesheet" href="styles.css?v=1.0">
+    <style>
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .upload-area:hover { border-color: #0056b3; }
+        .upload-label { cursor: pointer; display: block; }
+        .upload-icon { font-size: 3rem; margin-bottom: 1rem; }
+        #imageInput { display: none; }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading.active { display: flex; }
+        
+        .loading-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 300px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .loading-step { color: #666; margin-bottom: 1rem; }
+        
+        .loading-progress {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .loading-progress-bar {
+            height: 100%;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .result-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #prediction {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        #confidence {
+            font-size: 1.25rem;
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .file-info {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">AquaMonitor</div>
+            <nav class="nav">
+                <a href="home.html">Home</a>
+                <a href="dashboard.html">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="predator.html" class="active">Predator Detection</a>
+                <a href="about.html">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Predator Detection</h1>
+                <p class="hero-subtitle">Upload an image to detect and identify predators in your aquaculture environment</p>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="container">
+                <div class="upload-section">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="upload-area">
+                            <input type="file" id="imageInput" name="image" accept="image/*,video/*" required>
+                            <label for="imageInput" class="upload-label">
+                                <div class="upload-icon">📷</div>
+                                <div id="uploadText">Click to upload or drag and drop an image or video</div>
+                            </label>
+                            <div id="fileInfo" class="file-info" style="display: none;"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="detectButton">Detect Predator</button>
+                    </form>
+
+                    <div id="loading" class="loading">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-title">Detecting Predator</div>
+                            <div class="loading-step">Analyzing image...</div>
+                            <div class="loading-progress">
+                                <div class="loading-progress-bar" id="loadingProgressBar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="result" class="result-section" style="display: none;">
+                        <h3>Detection Result</h3>
+                        <div id="prediction"></div>
+                        <div id="confidence"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // File upload feedback
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const fileInfo = document.getElementById('fileInfo');
+            const uploadText = document.getElementById('uploadText');
+            
+            if (file) {
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    alert('File is too large. Maximum size is 10MB.');
+                    e.target.value = '';
+                    fileInfo.style.display = 'none';
+                    uploadText.textContent = 'Click to upload or drag and drop an image or video';
+                    return;
+                }
+                
+                const allowedTypes = ['image/', 'video/'];
+                const isValidType = allowedTypes.some(type => file.type.startsWith(type));
+                if (!isValidType) {
+                    alert('Please select an image or video file.');
+                    e.target.value = '';
+                    fileInfo.style.display = 'none';
+                    uploadText.textContent = 'Click to upload or drag and drop an image or video';
+                    return;
+                }
+                
+                uploadText.textContent = 'File selected successfully!';
+                fileInfo.textContent = `📁 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                fileInfo.style.display = 'block';
+                
+                console.log('File selected:', file.name, `(${(file.size / 1024).toFixed(1)} KB)`);
+            } else {
+                fileInfo.style.display = 'none';
+                uploadText.textContent = 'Click to upload or drag and drop an image or video';
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const file = document.getElementById('imageInput').files[0];
+            if (!file) {
+                alert('Please select an image or video file');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const detectButton = document.getElementById('detectButton');
+            const progressBar = document.getElementById('loadingProgressBar');
+            const loadingStep = document.querySelector('.loading-step');
+            
+            loading.classList.add('active');
+            detectButton.disabled = true;
+            detectButton.textContent = 'Detecting...';
+            progressBar.style.width = '20%';
+            loadingStep.textContent = 'Uploading image...';
+
+            formData.append('image', file);
+
+            try {
+                progressBar.style.width = '50%';
+                loadingStep.textContent = 'Processing with AI model...';
+                
+                const response = await fetch('/api/predict-predator', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                progressBar.style.width = '80%';
+                loadingStep.textContent = 'Analyzing results...';
+                
+                const result = await response.json();
+                console.log('📦 Received result from server:', result);
+
+                progressBar.style.width = '100%';
+                loadingStep.textContent = 'Complete!';
+
+                if (result.error) {
+                    document.getElementById('prediction').textContent = `Error: ${result.error}`;
+                    document.getElementById('confidence').textContent = '';
+                } else {
+                    const predatorName = result.predator || 'Unknown';
+                    document.getElementById('prediction').textContent = `Predator: ${predatorName}`;
+                    console.log('🏷️ Predator name set to:', predatorName);
+                    
+                    const confidence = Number(result.confidence);
+                    if (Number.isFinite(confidence)) {
+                        document.getElementById('confidence').textContent = `Confidence: ${(confidence * 100).toFixed(2)}%`;
+                        console.log('📈 Confidence set to:', (confidence * 100).toFixed(2) + '%');
+                    } else {
+                        document.getElementById('confidence').textContent = 'Confidence: N/A';
+                    }
+                }
+                
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('Predator detection error:', error);
+                document.getElementById('prediction').textContent = 'Error detecting predator. Check server logs.';
+                document.getElementById('confidence').textContent = '';
+                document.getElementById('result').style.display = 'block';
+            } finally {
+                setTimeout(() => {
+                    loading.classList.remove('active');
+                    detectButton.disabled = false;
+                    detectButton.textContent = 'Detect Predator';
+                    progressBar.style.width = '0%';
+                    loadingStep.textContent = 'Analyzing image...';
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

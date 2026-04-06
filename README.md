@@ -1,4 +1,4 @@
-# 🌊 AquaMonitor - AI-Powered Water Quality Prediction System
+# AquaMonitor - AI-Powered Water Quality Prediction System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -7,18 +7,18 @@
 
 > **Revolutionary LSTM-based water quality prediction system for aquaculture using climate-agnostic modeling**
 
-## 🚀 Features
+## Features
 
-- **🤖 Universal LSTM Model** - Single model works globally without location-specific training
-- **🐟 Multi-Species Support** - 8 aquaculture species with optimized thresholds
-- **📍 Location-Based Predictions** - GPS coordinates or preset locations
-- **📊 Real-Time Visualization** - Interactive charts with species-specific thresholds
-- **⚠️ Risk Assessment** - Predictive health risk analysis for aquatic species
-- **📈 Historical Analysis** - Date range filtering and CSV export
-- **🌍 Global Coverage** - Works anywhere with internet connection
-- **📱 Responsive Design** - Modern web interface with mobile support
+- **Universal LSTM Model** - Single model works globally without location-specific training
+- **Multi-Species Support** - 8 aquaculture species with optimized thresholds
+- **Location-Based Predictions** - GPS coordinates or preset locations
+- **Real-Time Visualization** - Interactive charts with species-specific thresholds
+- **Risk Assessment** - Predictive health risk analysis for aquatic species
+- **Historical Analysis** - Date range filtering and CSV export
+- **Global Coverage** - Works anywhere with internet connection
+- **Responsive Design** - Modern web interface with mobile support
 
-## 🎯 Supported Species
+## Supported Species
 
 | Species | Temperature (°C) | Dissolved Oxygen (mg/L) | pH Range |
 |---------|------------------|-------------------------|----------|
@@ -31,21 +31,23 @@
 | **Shrimp** | 26-32 | 4-10 | 7.0-8.5 |
 | **Prawn** | 26-31 | 4-10 | 7.0-8.5 |
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Backend**: Node.js + Express.js
 - **AI/ML**: Python + TensorFlow/Keras (LSTM)
 - **Frontend**: Vanilla JavaScript + Chart.js
+- **Database**: PostgreSQL (for farm management)
 - **Data Source**: Open-Meteo Weather API
 - **Styling**: Modern CSS Grid/Flexbox
 
-## 📋 Prerequisites
+## Prerequisites
 
 - **Python 3.8+** with pip
 - **Node.js 14+** with npm
+- **PostgreSQL 12+** (for farm management system)
 - **Internet connection** for weather data API
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Clone Repository
 ```bash
@@ -64,10 +66,16 @@ python train_model_universal.py
 ```
 *This will take 5-10 minutes and create the model files*
 
-### 4. Install Node.js Dependencies
+### 4. Setup Database (For Farm Management)
 ```bash
 cd web-app
 npm install
+
+# Setup PostgreSQL database
+node setup-database.js
+
+# Test database connection
+node test-connection.js
 ```
 
 ### 5. Start Server
@@ -86,35 +94,44 @@ Open your browser and navigate to:
 http://localhost:3000
 ```
 
-## 📁 Project Structure
+**Available Pages:**
+- **Home**: `http://localhost:3000/home.html`
+- **Dashboard**: `http://localhost:3000/dashboard.html` (Individual analysis)
+- **Analytics**: `http://localhost:3000/analytics.html` (Data export)
+- **Farm Management**: `http://localhost:3000/multi-location.html` (Multi-location system)
+- **About**: `http://localhost:3000/about.html`
+
+## Project Structure
 
 ```
 aquamonitor/
-├── 📄 README.md                    # This file
-├── 📄 requirements.txt            # Python dependencies
-├── 🔧 start.bat                   # Windows quick start
-├── 🤖 train_model_universal.py    # LSTM model training
-├── 🧠 water_qual_universal.keras  # Trained model (generated)
-├── 📊 water_qual_universal_scaler.pkl # Data scaler (generated)
+├── README.md                    # This file
+├── requirements.txt            # Python dependencies
+├── start.bat                   # Windows quick start
+├── train_model_universal.py    # LSTM model training
+├── water_qual_universal.keras  # Trained model (generated)
+├── water_qual_universal_scaler.pkl # Data scaler (generated)
 └── web-app/                       # Web application
-    ├── 🌐 server.js               # Express server
-    ├── 📦 package.json           # Node dependencies
-    ├── 🐍 predict_universal.py   # LSTM prediction script
-    ├── 🐍 predict.py             # Manual prediction script
-    ├── 🐍 fetch_data_universal.py # Data fetcher
+    ├── server.js               # Express server
+    ├── package.json           # Node dependencies
+    ├── predict_universal.py   # LSTM prediction script
+    ├── predict.py             # Manual prediction script
+    ├── predict_future_datetime.py # Future prediction script
+    ├── fetch_data_universal.py # Data fetcher
     └── public/                    # Frontend files
-        ├── 🏠 home.html          # Landing page
-        ├── 📊 dashboard.html     # Main dashboard
-        ├── 📈 analytics.html     # Data analysis
-        ├── ℹ️ about.html         # Information page
-        ├── 🗂️ indexold.html      # Single-page backup
-        ├── 🎨 styles.css         # Modern CSS
-        └── ⚡ script.js          # Frontend logic
+        ├── home.html          # Landing page
+        ├── dashboard.html     # Main dashboard
+        ├── analytics.html     # Data analysis
+        ├── about.html         # Information page
+        ├── multi-location.html # Farm management
+        ├── multi-location.js  # Farm management logic
+        ├── styles.css         # Modern CSS
+        └── script.js          # Frontend logic
 ```
 
-## 🔬 How It Works
+## How It Works
 
-### 1. **Universal Climate-Agnostic Formulas**
+### 1. Universal Climate-Agnostic Formulas
 ```python
 # Water Temperature (Thermal Inertia Model)
 water_temp = 0.75 * previous_temp + 0.25 * (air_temp - 2)
@@ -127,13 +144,13 @@ do_actual = do_sat * (1 + (humidity-50)/400) * (1 - windspeed/100)
 ph = 7.3 + 0.4*sin(2π*hour/24) - 0.015*(temp-25) - 0.1*log(1+rain)
 ```
 
-### 2. **LSTM Neural Network Architecture**
+### 2. LSTM Neural Network Architecture
 - **Input**: 24-hour meteorological data sequences
 - **Architecture**: 64 LSTM units → Dropout (0.2) → Dense (32) → Output (3 parameters)
 - **Training**: 365 days historical weather data
 - **Output**: Next-hour water quality predictions
 
-### 3. **Species-Specific Risk Assessment**
+### 3. Species-Specific Risk Assessment
 ```javascript
 function calculateRisk(temp, do, ph, species) {
     let riskScore = 0;
@@ -144,31 +161,52 @@ function calculateRisk(temp, do, ph, species) {
 }
 ```
 
-## 🎮 Usage
+## Usage
 
-### **Dashboard Mode**
+### Dashboard Mode
 1. **Manual Input**: Enter water parameters directly
 2. **GPS Coordinates**: Use location-based LSTM predictions
 3. **Preset Locations**: Select from 100+ Indian cities
 
-### **Analytics Mode**
+### Analytics Mode
 1. Select date ranges for historical analysis
 2. View data tables with filtering
 3. Export CSV reports for record keeping
 
-### **Prediction Modes**
+### Prediction Modes
 - **Real-time**: Instant quality assessment
 - **Forecasting**: Next-hour predictions
 - **Historical**: Trend analysis with date ranges
 
-## 🌍 Example Coordinates
+## Farm Management System
+
+### Features
+- **Multi-Farm Support**: Register and manage multiple aquaculture farms
+- **Location Management**: Add ponds, tanks, cages, and raceways with GPS coordinates
+- **Batch Analysis**: Analyze multiple locations simultaneously
+- **Species Tracking**: Primary and secondary species management
+- **Analysis History**: Track water quality trends over time
+- **Data Export**: Export analysis results to CSV
+
+### Demo Credentials
+**Farm Name**: Blue Ocean Aquaculture  
+**Farm ID**: BOA2024
+
+### Getting Started
+1. Visit `http://localhost:3000/multi-location.html`
+2. Login with demo credentials or register a new farm
+3. Add your pond/tank locations with GPS coordinates
+4. Select locations and run batch analysis
+5. View results and export data for record keeping
+
+## Example Coordinates
 
 - **Kerala, India**: `10.98267, 76.97678`
 - **California, USA**: `36.7783, -119.4179`
 - **Tokyo, Japan**: `35.6762, 139.6503`
 - **London, UK**: `51.5074, -0.1278`
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### POST `/api/predict`
 **Manual Input:**
@@ -195,7 +233,7 @@ function calculateRisk(temp, do, ph, species) {
 GET /api/fetch-data?latitude=10.98267&longitude=76.97678
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
@@ -205,7 +243,7 @@ GET /api/fetch-data?latitude=10.98267&longitude=76.97678
 | **Charts not loading** | Clear browser cache (Ctrl+F5) |
 | **GPS not working** | Use HTTPS or enter coordinates manually |
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 - **Training Time**: 5-10 minutes on standard hardware
 - **Prediction Speed**: <2 seconds per location
@@ -213,7 +251,7 @@ GET /api/fetch-data?latitude=10.98267&longitude=76.97678
 - **Global Coverage**: Any latitude/longitude coordinate
 - **Concurrent Users**: Multi-user web interface support
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -221,29 +259,24 @@ GET /api/fetch-data?latitude=10.98267&longitude=76.97678
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Open-Meteo API** for global weather data
 - **TensorFlow Team** for the ML framework
 - **Chart.js** for visualization capabilities
 - **Express.js** for the web framework
 
-## 📞 Contact
+## Contact
 
-- **Email**: your.email@example.com
-- **LinkedIn**: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- **GitHub**: [@yourusername](https://github.com/yourusername)
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/aquamonitor&type=Date)](https://star-history.com/#yourusername/aquamonitor&Date)
+- **Phone**: 8870958705
+- **Email**: info@aquamonitor.com
 
 ---
 
-**Made with ❤️ for the aquaculture industry**
+**Professional water quality monitoring solution for the aquaculture industry**
 
 > *Revolutionizing fish farming through AI-powered water quality monitoring*

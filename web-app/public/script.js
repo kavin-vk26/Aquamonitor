@@ -565,7 +565,7 @@ function runManualPrediction() {
         return;
     }
     
-    showLoading('Manual Water Quality Analysis');
+    showLoading('LSTM Manual Analysis');
     
     fetch(addCacheBuster('/api/predict'), {
         method: 'POST',
@@ -579,10 +579,10 @@ function runManualPrediction() {
     })
     .then(response => response.json())
     .then(result => {
-        // Manual input only shows current analysis - no "next hour" prediction
+        // Manual input now uses LSTM model for analysis and predictions
         handleManualPredictionResponse(result);
     })
-    .catch(error => alert('Manual analysis failed: ' + error.message))
+    .catch(error => alert('LSTM manual analysis failed: ' + error.message))
     .finally(() => hideLoading());
 }
 
@@ -594,7 +594,7 @@ function handleManualPredictionResponse(data) {
     // Update quality score
     document.getElementById('scoreValue').textContent = data.quality_score;
     document.getElementById('scoreLabel').textContent = data.quality_level;
-    document.getElementById('timestamp').textContent = 'Updated: ' + data.timestamp;
+    document.getElementById('timestamp').textContent = 'LSTM Analysis: ' + data.timestamp;
     document.getElementById('scoreDisplay').style.background = data.color;
     
     // Update recommendations
@@ -606,14 +606,14 @@ function handleManualPredictionResponse(data) {
         recList.appendChild(li);
     });
     
-    // For manual input - show current analysis, not "next hour prediction"
-    document.getElementById('predictionTime').textContent = 'Current Analysis Results';
-    document.getElementById('predTemp').textContent = data.temperature + ' °C (Input)';
-    document.getElementById('predDO').textContent = data.dissolved_oxygen + ' mg/L (Input)';
-    document.getElementById('predPH').textContent = data.ph + ' (Input)';
+    // For manual input - show LSTM-based next hour prediction
+    document.getElementById('predictionTime').textContent = 'LSTM Next-Hour Forecast: ' + data.prediction_time;
+    document.getElementById('predTemp').textContent = data.predicted_values.water_temp + ' °C';
+    document.getElementById('predDO').textContent = data.predicted_values.do + ' mg/L';
+    document.getElementById('predPH').textContent = data.predicted_values.ph;
     
-    // Calculate fish health risk from manual inputs
-    const risk = calculateFishHealthRisk(data.temperature, data.dissolved_oxygen, data.ph);
+    // Calculate fish health risk from LSTM predicted values
+    const risk = calculateFishHealthRisk(data.predicted_values.water_temp, data.predicted_values.do, data.predicted_values.ph);
     document.getElementById('riskDisplay').className = 'risk-display-enhanced ' + risk.class;
     document.getElementById('riskLevel').textContent = risk.level;
     document.getElementById('riskMessage').textContent = risk.message;
