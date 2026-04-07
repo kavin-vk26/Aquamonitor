@@ -98,8 +98,8 @@ app.get('/dashboard.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-app.get('/analytics.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'analytics.html'));
+app.get('/data-reports.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'data-reports.html'));
 });
 
 app.get('/multi-location.html', (req, res) => {
