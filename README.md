@@ -5,18 +5,18 @@
 [![Node.js 14+](https://img.shields.io/badge/node.js-14+-green.svg)](https://nodejs.org/)
 [![TensorFlow 2.15](https://img.shields.io/badge/tensorflow-2.15-orange.svg)](https://tensorflow.org/)
 
-> **Revolutionary LSTM-based water quality prediction system for aquaculture using climate-agnostic modeling**
+> **Professional LSTM-based water quality prediction system for aquaculture with comprehensive farm management**
 
-## Features
+## Key Features
 
-- **Universal LSTM Model** - Single model works globally without location-specific training
-- **Multi-Species Support** - 8 aquaculture species with optimized thresholds
-- **Location-Based Predictions** - GPS coordinates or preset locations
-- **Real-Time Visualization** - Interactive charts with species-specific thresholds
-- **Risk Assessment** - Predictive health risk analysis for aquatic species
-- **Historical Analysis** - Date range filtering and CSV export
-- **Global Coverage** - Works anywhere with internet connection
-- **Responsive Design** - Modern web interface with mobile support
+- **LSTM Neural Networks** - Advanced deep learning models for accurate water quality predictions
+- **Multi-Species Support** - 8 aquaculture species with species-specific optimal ranges
+- **Real-Time Analysis** - Instant water quality assessment with AI-powered recommendations
+- **Global Coverage** - Works worldwide using GPS coordinates or city selection
+- **Farm Management** - Multi-location analysis system with PostgreSQL database
+- **Data Export** - Comprehensive reporting with CSV export functionality
+- **Predator Detection** - TensorFlow Lite-based aquatic predator identification system
+- **Mobile Responsive** - Professional interface optimized for all devices
 
 ## Supported Species
 
@@ -97,107 +97,125 @@ http://localhost:3000
 **Available Pages:**
 - **Home**: `http://localhost:3000/home.html`
 - **Dashboard**: `http://localhost:3000/dashboard.html` (Individual analysis)
-- **Analytics**: `http://localhost:3000/analytics.html` (Data export)
+- **Data Reports**: `http://localhost:3000/data-reports.html` (Historical analysis & export)
 - **Farm Management**: `http://localhost:3000/multi-location.html` (Multi-location system)
+- **Predator Detection**: `http://localhost:3000/predator.html` (AI-powered predator identification)
 - **About**: `http://localhost:3000/about.html`
 
 ## Project Structure
 
 ```
 aquamonitor/
-├── README.md                    # This file
-├── requirements.txt            # Python dependencies
-├── start.bat                   # Windows quick start
-├── train_model_universal.py    # LSTM model training
-├── water_qual_universal.keras  # Trained model (generated)
+├── README.md                       # This file
+├── LICENSE                         # MIT License
+├── .gitignore                      # Git ignore rules
+├── requirements.txt               # Python dependencies
+├── start.bat                      # Windows quick start
+├── train_model_universal.py       # LSTM model training
+├── water_qual_universal.keras     # Trained LSTM model (generated)
 ├── water_qual_universal_scaler.pkl # Data scaler (generated)
-└── web-app/                       # Web application
-    ├── server.js               # Express server
-    ├── package.json           # Node dependencies
-    ├── predict_universal.py   # LSTM prediction script
-    ├── predict.py             # Manual prediction script
-    ├── predict_future_datetime.py # Future prediction script
-    ├── fetch_data_universal.py # Data fetcher
-    └── public/                    # Frontend files
-        ├── home.html          # Landing page
-        ├── dashboard.html     # Main dashboard
-        ├── analytics.html     # Data analysis
-        ├── about.html         # Information page
-        ├── multi-location.html # Farm management
-        ├── multi-location.js  # Farm management logic
-        ├── styles.css         # Modern CSS
-        └── script.js          # Frontend logic
+└── web-app/                          # Web application
+    ├── server.js                  # Express server with PostgreSQL
+    ├── package.json              # Node dependencies
+    ├── setup-database.js         # Database setup script
+    ├── test-connection.js        # Database connection test
+    ├── predict_universal.py      # Location-based LSTM predictions
+    ├── predict_manual_lstm.py    # Manual input LSTM analysis
+    ├── predict_future_datetime.py # Future date/time predictions
+    ├── predict_predator_working.py # Predator detection system
+    ├── fetch_data_universal.py   # Weather data fetcher
+    ├── test_predator_system.py   # Predator system test
+    ├── PREDATOR_DETECTION.md     # Predator detection documentation
+    └── public/                       # Frontend files
+        ├── home.html             # Landing page
+        ├── dashboard.html        # Main dashboard with unified interface
+        ├── data-reports.html     # Historical analysis & export
+        ├── about.html            # Information page
+        ├── multi-location.html   # Farm management system
+        ├── predator.html         # Predator detection interface
+        ├── multi-location.js     # Farm management logic
+        ├── styles.css            # Professional responsive CSS
+        └── script.js             # Main frontend logic
 ```
 
-## How It Works
+## System Architecture
 
-### 1. Universal Climate-Agnostic Formulas
+### 1. LSTM Neural Network
+- **Model Type**: Long Short-Term Memory (LSTM) deep learning network
+- **Input**: 24-hour meteorological data sequences from Open-Meteo API
+- **Architecture**: 64 LSTM units → Dropout (0.2) → Dense (32) → Output (3 parameters)
+- **Training Data**: 365 days of global weather patterns
+- **Output**: Water temperature, dissolved oxygen, and pH predictions
+
+### 2. Climate-Agnostic Modeling
 ```python
-# Water Temperature (Thermal Inertia Model)
+# Universal formulas work globally without location-specific training
 water_temp = 0.75 * previous_temp + 0.25 * (air_temp - 2)
-
-# Dissolved Oxygen (Henry's Law + Environmental Factors)
 do_saturation = 14.652 - 0.41022*temp + 0.007991*temp² - 0.000077774*temp³
-do_actual = do_sat * (1 + (humidity-50)/400) * (1 - windspeed/100)
-
-# pH (Diurnal + Temperature + Precipitation Model)
 ph = 7.3 + 0.4*sin(2π*hour/24) - 0.015*(temp-25) - 0.1*log(1+rain)
 ```
 
-### 2. LSTM Neural Network Architecture
-- **Input**: 24-hour meteorological data sequences
-- **Architecture**: 64 LSTM units → Dropout (0.2) → Dense (32) → Output (3 parameters)
-- **Training**: 365 days historical weather data
-- **Output**: Next-hour water quality predictions
+### 3. Intelligent Analysis System
+- **Species-Specific Thresholds**: Optimal ranges for 8 aquaculture species
+- **Risk Assessment**: AI-powered health risk analysis with recommendations
+- **Seasonal Intelligence**: Cultivation period awareness for timing recommendations
+- **Quality Scoring**: Comprehensive water quality assessment (0-100 scale)
 
-### 3. Species-Specific Risk Assessment
-```javascript
-function calculateRisk(temp, do, ph, species) {
-    let riskScore = 0;
-    // Critical DO assessment (highest priority)
-    if (do < thresholds.doMin) riskScore += 60; // HIGH RISK
-    // pH and temperature assessments...
-    return classifyRisk(riskScore); // LOW/MODERATE/HIGH
-}
-```
+### 4. Predator Detection
+- **Technology**: TensorFlow Lite with YOLO object detection
+- **Capability**: Real-time identification of aquatic predators
+- **Integration**: Seamless web interface with image upload functionality
 
-## Usage
+## Usage Guide
 
-### Dashboard Mode
-1. **Manual Input**: Enter water parameters directly
-2. **GPS Coordinates**: Use location-based LSTM predictions
-3. **Preset Locations**: Select from 100+ Indian cities
+### Dashboard Interface
+**Unified Location Setup:**
+- **GPS Coordinates**: Enter latitude/longitude for precise location analysis
+- **City Selection**: Choose from 100+ preset locations worldwide
 
-### Analytics Mode
-1. Select date ranges for historical analysis
-2. View data tables with filtering
-3. Export CSV reports for record keeping
+**Prediction Types:**
+- **Current Analysis**: Real-time water quality assessment using LSTM predictions
+- **Manual Input**: Direct parameter entry with LSTM-based regional comparison
+- **Future Prediction**: Forecast water quality for any date/time up to 1 year ahead
 
-### Prediction Modes
-- **Real-time**: Instant quality assessment
-- **Forecasting**: Next-hour predictions
-- **Historical**: Trend analysis with date ranges
+### Data Reports
+- **Historical Analysis**: Date range selection with interactive charts
+- **Species-Specific Visualization**: Optimal ranges displayed as reference lines
+- **Cultivation Seasons**: Visual indicators for species-specific farming periods
+- **CSV Export**: Comprehensive data export for record keeping
 
-## Farm Management System
-
-### Features
-- **Multi-Farm Support**: Register and manage multiple aquaculture farms
-- **Location Management**: Add ponds, tanks, cages, and raceways with GPS coordinates
-- **Batch Analysis**: Analyze multiple locations simultaneously
-- **Species Tracking**: Primary and secondary species management
+### Farm Management System
+- **Multi-Farm Support**: Register and manage multiple aquaculture operations
+- **Location Management**: Add ponds, tanks, cages with GPS coordinates
+- **Batch Analysis**: Simultaneous analysis of multiple locations
 - **Analysis History**: Track water quality trends over time
-- **Data Export**: Export analysis results to CSV
 
-### Demo Credentials
-**Farm Name**: Blue Ocean Aquaculture  
-**Farm ID**: BOA2024
+### Predator Detection
+- **Image Upload**: Upload photos for AI-powered predator identification
+- **Real-Time Analysis**: Instant species identification with confidence scores
+- **Integration**: Seamless workflow with water quality monitoring
 
-### Getting Started
-1. Visit `http://localhost:3000/multi-location.html`
-2. Login with demo credentials or register a new farm
-3. Add your pond/tank locations with GPS coordinates
-4. Select locations and run batch analysis
-5. View results and export data for record keeping
+## Advanced Features
+
+### Smart Recommendation System
+- **Species Intelligence**: Recommendations based on selected aquaculture species
+- **Seasonal Awareness**: Considers optimal cultivation periods for each species
+- **Location Context**: Regional climate patterns influence recommendations
+- **Risk Prioritization**: Critical parameters (dissolved oxygen) get highest priority
+- **Actionable Advice**: Specific steps for water quality improvement
+
+### Professional Interface
+- **Modern Design**: Clean, gradient-based professional styling
+- **Mobile Responsive**: Optimized for tablets and smartphones
+- **Cache Management**: Automatic cache-busting for consistent updates
+- **Interactive Charts**: Chart.js-powered visualizations with species thresholds
+- **User Experience**: Logical workflow with explicit data loading controls
+
+### Database Integration
+- **PostgreSQL Backend**: Robust database for farm management
+- **Data Persistence**: Session storage for seamless navigation
+- **Multi-User Support**: Concurrent access for team collaboration
+- **Export Capabilities**: CSV download for external analysis
 
 ## Example Coordinates
 
@@ -243,13 +261,26 @@ GET /api/fetch-data?latitude=10.98267&longitude=76.97678
 | **Charts not loading** | Clear browser cache (Ctrl+F5) |
 | **GPS not working** | Use HTTPS or enter coordinates manually |
 
-## Performance Metrics
+## Technical Specifications
 
-- **Training Time**: 5-10 minutes on standard hardware
-- **Prediction Speed**: <2 seconds per location
-- **Memory Usage**: ~50MB for loaded model
-- **Global Coverage**: Any latitude/longitude coordinate
-- **Concurrent Users**: Multi-user web interface support
+### Performance
+- **LSTM Training**: 5-10 minutes on standard hardware
+- **Prediction Speed**: <2 seconds per location analysis
+- **Memory Usage**: ~50MB for loaded LSTM model
+- **Global Coverage**: Any latitude/longitude coordinate worldwide
+- **Concurrent Users**: Multi-user web interface with session management
+
+### Compatibility
+- **Browsers**: Chrome, Firefox, Safari, Edge (modern versions)
+- **Mobile**: iOS Safari, Android Chrome with responsive design
+- **Operating Systems**: Windows, macOS, Linux
+- **Database**: PostgreSQL 12+ for farm management features
+
+### Security
+- **Data Privacy**: No sensitive data stored permanently
+- **API Security**: Rate limiting and input validation
+- **Database Security**: Parameterized queries prevent SQL injection
+- **File Upload**: Secure image processing for predator detection
 
 ## Contributing
 
@@ -270,13 +301,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Chart.js** for visualization capabilities
 - **Express.js** for the web framework
 
-## Contact
+## Support & Contact
 
 - **Phone**: 8870958705
 - **Email**: info@aquamonitor.com
+- **Documentation**: Comprehensive guides included in project
+- **Issues**: GitHub issue tracker for bug reports and feature requests
+
+## Recent Updates
+
+- **v2.1**: Added predator detection system with TensorFlow Lite
+- **v2.0**: Implemented comprehensive farm management with PostgreSQL
+- **v1.9**: Enhanced mobile responsiveness and professional UI design
+- **v1.8**: Integrated future date/time prediction capabilities
+- **v1.7**: Added intelligent recommendation system with seasonal awareness
+- **v1.6**: Implemented unified dashboard interface with improved UX
 
 ---
 
-**Professional water quality monitoring solution for the aquaculture industry**
+**Professional AI-powered aquaculture monitoring solution**
 
-> *Revolutionizing fish farming through AI-powered water quality monitoring*
+> *Advanced LSTM neural networks meet practical aquaculture management*
