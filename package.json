@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node web-app/server.js",
     "dev": "node web-app/server.js",
-    "build": "echo 'No build step required'"
+    "build": "chmod +x build.sh && ./build.sh",
+    "render-build": "npm install && pip install --no-cache-dir -r requirements.txt"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,8 +17,8 @@
     "pg": "^8.20.0"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "python": ">=3.9.0"
+    "node": "18.x",
+    "python": "3.10.x"
   },
   "keywords": [
     "aquaculture",
