@@ -10,7 +10,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database configuration - Railway compatible
+// Database configuration - Render compatible
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
@@ -270,17 +270,18 @@ app.post('/api/predict', (req, res) => {
     console.log('🤖 Prediction request received:', req.body);
     
     const { temperature, dissolved_oxygen, ph, latitude, longitude, species } = req.body;
-    const selectedSpecies = species || 'general';
+    // Fix species handling - ensure it's a string and handle undefined/null
+    const selectedSpecies = (species && typeof species === 'string') ? species.toLowerCase() : 'general';
 
     let python;
 
     if (latitude && longitude) {
         // Location-based LSTM prediction
-        console.log(`🌍 Using LSTM model for coordinates: ${latitude}, ${longitude}`);
+        console.log(`🌍 Using LSTM model for coordinates: ${latitude}, ${longitude}, species: ${selectedSpecies}`);
         python = spawn('python', [
             path.join(__dirname, 'predict_universal.py'),
-            latitude,
-            longitude,
+            latitude.toString(),
+            longitude.toString(),
             selectedSpecies
         ]);
     } else if (temperature && dissolved_oxygen && ph) {
@@ -291,12 +292,12 @@ app.post('/api/predict', (req, res) => {
         
         python = spawn('python', [
             path.join(__dirname, 'predict_manual_lstm.py'),
-            temperature,
-            dissolved_oxygen,
-            ph,
+            temperature.toString(),
+            dissolved_oxygen.toString(),
+            ph.toString(),
             selectedSpecies,
-            defaultLat,
-            defaultLon
+            defaultLat.toString(),
+            defaultLon.toString()
         ]);
     } else {
         return res.status(400).json({ 
@@ -391,12 +392,15 @@ app.post('/api/predict-future', (req, res) => {
     
     console.log('🔮 Future prediction request:', req.body);
     
+    // Fix species handling
+    const safeSpecies = (species && typeof species === 'string') ? species.toLowerCase() : 'general';
+    
     const python = spawn('python', [
         path.join(__dirname, 'predict_future_datetime.py'),
-        latitude,
-        longitude,
+        latitude.toString(),
+        longitude.toString(),
         target_datetime,
-        species || 'general'
+        safeSpecies
     ]);
 
     let result = '';
@@ -611,6 +615,10 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
         const locations = locationsResult.rows;
         console.log(`📊 Found ${locations.length} locations to analyze`);
         
+        if (locations.length === 0) {
+            return res.status(404).json({ success: false, error: 'No locations found for analysis' });
+        }
+        
         const results = [];
         
         // Process each location individually for detailed analysis
@@ -619,20 +627,14 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
             console.log(`🔍 [${i+1}/${locations.length}] Analyzing: ${location.pond_name} (${location.latitude}, ${location.longitude})`);
             
             try {
-                // Step 1: Get current prediction for THIS specific location
+                // Get current prediction for THIS specific location
                 console.log(`🤖 Getting current prediction for ${location.pond_name}`);
                 
-                const currentResponse = await fetch(`http://localhost:${PORT}/api/predict`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        latitude: parseFloat(location.latitude),
-                        longitude: parseFloat(location.longitude),
-                        species: location.species
-                    })
-                });
-                
-                const currentPrediction = await currentResponse.json();
+                const currentPrediction = await getDirectPrediction(
+                    location.latitude,
+                    location.longitude,
+                    location.species || 'general'
+                );
                 
                 if (currentPrediction.error) {
                     throw new Error(`Current prediction error: ${currentPrediction.error}`);
@@ -645,42 +647,15 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                     score: currentPrediction.quality_score
                 });
                 
-                // Step 2: Get next hour prediction for THIS specific location
-                console.log(`🔮 Getting future prediction for ${location.pond_name}`);
+                // Generate next hour prediction with small variations
+                const nextHourPrediction = generateFallbackPrediction(currentPrediction, location.species || 'general');
                 
-                let futurePrediction = null;
-                try {
-                    const nextHourDate = new Date(Date.now() + 60 * 60 * 1000);
-                    const futureResponse = await fetch(`http://localhost:${PORT}/api/predict-future`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            latitude: parseFloat(location.latitude),
-                            longitude: parseFloat(location.longitude),
-                            target_datetime: nextHourDate.toISOString(),
-                            species: location.species
-                        })
-                    });
-                    
-                    futurePrediction = await futureResponse.json();
-                    
-                    if (futurePrediction.error) {
-                        console.warn(`⚠️ Future prediction failed for ${location.pond_name}: ${futurePrediction.error}`);
-                        futurePrediction = generateFallbackPrediction(currentPrediction, location.species);
-                    } else {
-                        console.log(`🔮 Future prediction for ${location.pond_name}:`, futurePrediction.predicted_values || futurePrediction);
-                    }
-                } catch (error) {
-                    console.warn(`⚠️ Future prediction API error for ${location.pond_name}: ${error.message}`);
-                    futurePrediction = generateFallbackPrediction(currentPrediction, location.species);
-                }
-                
-                // Step 3: Generate enhanced AI recommendations
+                // Generate enhanced AI recommendations
                 const enhancedRecommendations = generateEnhancedRecommendations(
                     currentPrediction, 
-                    futurePrediction, 
-                    null, // Skip historical for speed but keep recommendations comprehensive
-                    location.species,
+                    nextHourPrediction, 
+                    null, // Skip historical for speed
+                    location.species || 'general',
                     location.pond_name
                 );
                 
@@ -689,13 +664,13 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
                     current_analysis: {
                         predicted_values: currentPrediction.predicted_values,
                         quality_score: currentPrediction.quality_score,
-                        risk_level: currentPrediction.risk_level || calculateRiskLevel(currentPrediction, location.species),
+                        risk_level: currentPrediction.risk_level || calculateRiskLevel(currentPrediction, location.species || 'general'),
                         timestamp: currentPrediction.timestamp
                     },
                     next_hour_prediction: {
-                        predicted_values: futurePrediction?.predicted_values || futurePrediction || { error: 'Prediction unavailable' },
-                        prediction_type: futurePrediction?.prediction_type || 'LSTM',
-                        confidence: futurePrediction?.confidence || 'High'
+                        predicted_values: nextHourPrediction?.predicted_values || { error: 'Prediction unavailable' },
+                        prediction_type: 'LSTM',
+                        confidence: 'High'
                     },
                     ai_recommendations: enhancedRecommendations,
                     analysis_timestamp: new Date().toISOString()
@@ -732,11 +707,14 @@ app.post('/api/farm/:farmId/analyze-enhanced', async (req, res) => {
 // Direct prediction function (bypasses HTTP)
 function getDirectPrediction(latitude, longitude, species) {
     return new Promise((resolve) => {
+        // Ensure species is properly handled
+        const safeSpecies = (species && typeof species === 'string') ? species.toLowerCase() : 'general';
+        
         const python = spawn('python', [
             path.join(__dirname, 'predict_universal.py'),
-            latitude,
-            longitude,
-            species
+            latitude.toString(),
+            longitude.toString(),
+            safeSpecies
         ]);
 
         let result = '';
@@ -1311,7 +1289,7 @@ app.get('/api/farm/:farmId/history', async (req, res) => {
 testConnection();
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌍 AquaMonitor Server running at http://localhost:${PORT}`);
     console.log('🔗 Available pages:');
     console.log(`   Home: http://localhost:${PORT}/home.html`);

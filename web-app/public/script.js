@@ -1928,62 +1928,78 @@ window.addEventListener('load', () => {
     const downloadBtn = document.getElementById('downloadBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', () => {
-            // Check if we're on analytics page and use analytics data
-            const isAnalyticsPage = window.location.pathname.includes('analytics') || window.location.href.includes('analytics');
+            // Check if we're on data reports page and use analytics data
+            const isDataReportsPage = window.location.pathname.includes('data-reports') || window.location.href.includes('data-reports');
             
             console.log('Download CSV clicked');
             console.log('Current URL:', window.location.href);
             console.log('Current pathname:', window.location.pathname);
-            console.log('Is analytics page:', isAnalyticsPage);
+            console.log('Is data reports page:', isDataReportsPage);
             console.log('window.analyticsData:', window.analyticsData);
+            console.log('window.analyticsCsvData:', window.analyticsCsvData);
             console.log('allChartData:', allChartData);
             
-            const dataToDownload = isAnalyticsPage ? window.analyticsData : allChartData;
+            // Use analytics CSV data if available, otherwise use analytics data, otherwise use chart data
+            let csvContent = '';
+            let filename = 'water_quality_data.csv';
             
-            if (!dataToDownload || !dataToDownload.length) { 
-                console.log('No data available for download');
-                alert(isAnalyticsPage ? 'No analytics data available. Please load data first.' : 'No data available.'); 
-                return; 
-            }
-            
-            console.log('Data to download:', dataToDownload.length, 'rows');
-            
-            // For analytics page, use the loaded date range; for dashboard, use CSV date inputs
-            let data = dataToDownload;
-            let fromDate = '', toDate = '';
-            
-            if (isAnalyticsPage) {
-                // Analytics page - data is already filtered by the selected date range
-                fromDate = document.getElementById('analyticsFromDate')?.value || 'all';
-                toDate = document.getElementById('analyticsToDate')?.value || 'data';
-                console.log('Analytics date range:', fromDate, 'to', toDate);
+            if (isDataReportsPage && window.analyticsCsvData) {
+                // Use pre-formatted CSV data from analytics
+                csvContent = window.analyticsCsvData;
+                const fromDate = document.getElementById('analyticsFromDate')?.value || 'all';
+                const toDate = document.getElementById('analyticsToDate')?.value || 'data';
+                filename = `water_quality_${fromDate}_to_${toDate}.csv`;
+                console.log('Using analytics CSV data');
             } else {
-                // Dashboard page - apply CSV date filter if specified
-                const from = document.getElementById('csvFromDate') ? document.getElementById('csvFromDate').value : '';
-                const to = document.getElementById('csvToDate') ? document.getElementById('csvToDate').value : '';
-                if (from && to) {
-                    const f = new Date(from), t = new Date(to);
-                    t.setHours(23,59,59,999);
-                    data = allChartData.filter(r => { const d = new Date(r.datetime); return d >= f && d <= t; });
+                // Generate CSV from data array
+                const dataToDownload = isDataReportsPage ? window.analyticsData : allChartData;
+                
+                if (!dataToDownload || !dataToDownload.length) { 
+                    console.log('No data available for download');
+                    alert(isDataReportsPage ? 'No data available. Please load data first using the "Load Data" button.' : 'No data available.'); 
+                    return; 
                 }
-                fromDate = from || 'all';
-                toDate = to || 'data';
+                
+                console.log('Data to download:', dataToDownload.length, 'rows');
+                
+                // For data reports page, use the loaded date range; for dashboard, use CSV date inputs
+                let data = dataToDownload;
+                let fromDate = '', toDate = '';
+                
+                if (isDataReportsPage) {
+                    // Data reports page - data is already filtered by the selected date range
+                    fromDate = document.getElementById('analyticsFromDate')?.value || 'all';
+                    toDate = document.getElementById('analyticsToDate')?.value || 'data';
+                    console.log('Data reports date range:', fromDate, 'to', toDate);
+                } else {
+                    // Dashboard page - apply CSV date filter if specified
+                    const from = document.getElementById('csvFromDate') ? document.getElementById('csvFromDate').value : '';
+                    const to = document.getElementById('csvToDate') ? document.getElementById('csvToDate').value : '';
+                    if (from && to) {
+                        const f = new Date(from), t = new Date(to);
+                        t.setHours(23,59,59,999);
+                        data = allChartData.filter(r => { const d = new Date(r.datetime); return d >= f && d <= t; });
+                    }
+                    fromDate = from || 'all';
+                    toDate = to || 'data';
+                }
+                
+                if (!data || !data.length) { 
+                    console.log('No data after filtering');
+                    alert('No data for selected range.'); 
+                    return; 
+                }
+                
+                console.log('Final data for CSV:', data.length, 'rows');
+                
+                csvContent = 'DateTime,Air Temp,Humidity,Rain,Water Temp,DO,pH\n';
+                data.forEach(r => { csvContent += `${r.datetime},${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; });
+                filename = `water_quality_${fromDate}_to_${toDate}.csv`;
             }
-            
-            if (!data || !data.length) { 
-                console.log('No data after filtering');
-                alert('No data for selected range.'); 
-                return; 
-            }
-            
-            console.log('Final data for CSV:', data.length, 'rows');
-            
-            let csv = 'DateTime,Air Temp,Humidity,Rain,Water Temp,DO,pH\n';
-            data.forEach(r => { csv += `${r.datetime},${r.air_temp},${r.humidity},${r.rain},${r.water_temp},${r.do},${r.ph}\n`; });
             
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-            a.download = `water_quality_${fromDate}_to_${toDate}.csv`;
+            a.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv' }));
+            a.download = filename;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             
             console.log('CSV download initiated');
