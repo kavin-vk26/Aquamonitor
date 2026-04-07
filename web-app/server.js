@@ -10,13 +10,10 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database configuration
+// Database configuration - Railway compatible
 const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'aquamonitor',
-    password: process.env.DB_PASSWORD || 'password',
-    port: process.env.DB_PORT || 5432,
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Test database connection
@@ -35,7 +32,7 @@ async function testConnection() {
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure multer for file uploads
 const upload = multer({
@@ -1319,14 +1316,13 @@ app.listen(PORT, () => {
     console.log('🔗 Available pages:');
     console.log(`   Home: http://localhost:${PORT}/home.html`);
     console.log(`   Dashboard: http://localhost:${PORT}/dashboard.html`);
-    console.log(`   Analytics: http://localhost:${PORT}/analytics.html`);
+    console.log(`   Data Reports: http://localhost:${PORT}/data-reports.html`);
     console.log(`   Farm Management: http://localhost:${PORT}/multi-location.html`);
     console.log(`   Predator Detection: http://localhost:${PORT}/predator.html`);
     console.log(`   About: http://localhost:${PORT}/about.html`);
     console.log('');
-    console.log('🏭 Farm Management Demo:');
-    console.log('   Farm Name: Blue Ocean Aquaculture');
-    console.log('   Farm ID: BOA2024');
+    console.log('🏭 Farm Management System Ready');
+    console.log('   Register your farm or login with existing credentials');
     
     // Auto-open browser
     const homeUrl = `http://localhost:${PORT}/home.html`;
