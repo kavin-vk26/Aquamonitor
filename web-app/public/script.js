@@ -523,19 +523,27 @@ function handleLSTMPredictionResponse(data) {
     saveState();
     
     // Update quality score from LSTM analysis
-    document.getElementById('scoreValue').textContent = data.quality_score;
-    document.getElementById('scoreLabel').textContent = data.quality_level;
-    document.getElementById('timestamp').textContent = 'LSTM Analysis: ' + data.timestamp;
-    document.getElementById('scoreDisplay').style.background = data.color;
+    const scoreValue = document.getElementById('scoreValue');
+    const scoreLabel = document.getElementById('scoreLabel');
+    const timestamp = document.getElementById('timestamp');
+    
+    if (scoreValue) {
+        scoreValue.textContent = data.quality_score;
+        scoreValue.className = 'assessment-value score-' + data.quality_level.toLowerCase();
+    }
+    if (scoreLabel) scoreLabel.textContent = data.quality_level;
+    if (timestamp) timestamp.textContent = 'LSTM Analysis: ' + data.timestamp;
     
     // Update LSTM-generated recommendations
     const recList = document.getElementById('recommendationsList');
-    recList.innerHTML = '';
-    data.recommendations.forEach(rec => {
-        const li = document.createElement('li'); 
-        li.textContent = rec; 
-        recList.appendChild(li);
-    });
+    if (recList) {
+        recList.innerHTML = '';
+        data.recommendations.forEach(rec => {
+            const li = document.createElement('li'); 
+            li.textContent = rec; 
+            recList.appendChild(li);
+        });
+    }
     
     // LSTM predictions include next-hour forecasting
     if (data.predicted_values) {
@@ -546,9 +554,14 @@ function handleLSTMPredictionResponse(data) {
         
         // Fish health risk from LSTM predicted values
         const risk = calculateFishHealthRisk(data.predicted_values.water_temp, data.predicted_values.do, data.predicted_values.ph);
-        document.getElementById('riskDisplay').className = 'risk-display-enhanced ' + risk.class;
-        document.getElementById('riskLevel').textContent = risk.level;
-        document.getElementById('riskMessage').textContent = risk.message;
+        const riskLevel = document.getElementById('riskLevel');
+        const riskMessage = document.getElementById('riskMessage');
+        
+        if (riskLevel) {
+            riskLevel.textContent = risk.level;
+            riskLevel.className = 'assessment-value risk-' + risk.level.toLowerCase();
+        }
+        if (riskMessage) riskMessage.textContent = risk.message;
     }
     
     // Generate smart advisory from LSTM analysis
@@ -592,19 +605,27 @@ function handleManualPredictionResponse(data) {
     saveState();
     
     // Update quality score
-    document.getElementById('scoreValue').textContent = data.quality_score;
-    document.getElementById('scoreLabel').textContent = data.quality_level;
-    document.getElementById('timestamp').textContent = 'LSTM Analysis: ' + data.timestamp;
-    document.getElementById('scoreDisplay').style.background = data.color;
+    const scoreValue = document.getElementById('scoreValue');
+    const scoreLabel = document.getElementById('scoreLabel');
+    const timestamp = document.getElementById('timestamp');
+    
+    if (scoreValue) {
+        scoreValue.textContent = data.quality_score;
+        scoreValue.className = 'assessment-value score-' + data.quality_level.toLowerCase();
+    }
+    if (scoreLabel) scoreLabel.textContent = data.quality_level;
+    if (timestamp) timestamp.textContent = 'LSTM Analysis: ' + data.timestamp;
     
     // Update recommendations
     const recList = document.getElementById('recommendationsList');
-    recList.innerHTML = '';
-    data.recommendations.forEach(rec => {
-        const li = document.createElement('li'); 
-        li.textContent = rec; 
-        recList.appendChild(li);
-    });
+    if (recList) {
+        recList.innerHTML = '';
+        data.recommendations.forEach(rec => {
+            const li = document.createElement('li'); 
+            li.textContent = rec; 
+            recList.appendChild(li);
+        });
+    }
     
     // For manual input - show LSTM-based next hour prediction
     document.getElementById('predictionTime').textContent = 'LSTM Next-Hour Forecast: ' + data.prediction_time;
@@ -614,9 +635,14 @@ function handleManualPredictionResponse(data) {
     
     // Calculate fish health risk from LSTM predicted values
     const risk = calculateFishHealthRisk(data.predicted_values.water_temp, data.predicted_values.do, data.predicted_values.ph);
-    document.getElementById('riskDisplay').className = 'risk-display-enhanced ' + risk.class;
-    document.getElementById('riskLevel').textContent = risk.level;
-    document.getElementById('riskMessage').textContent = risk.message;
+    const riskLevel = document.getElementById('riskLevel');
+    const riskMessage = document.getElementById('riskMessage');
+    
+    if (riskLevel) {
+        riskLevel.textContent = risk.level;
+        riskLevel.className = 'assessment-value risk-' + risk.level.toLowerCase();
+    }
+    if (riskMessage) riskMessage.textContent = risk.message;
     
     // Generate smart advisory for manual input
     generateSmartAdvisory();
@@ -1071,26 +1097,42 @@ function loadSavedState() {
 function restorePredictionUI(data) {
     const scoreValue = document.getElementById('scoreValue');
     if (!scoreValue) return;
-    document.getElementById('scoreValue').textContent = data.quality_score;
-    document.getElementById('scoreLabel').textContent = data.quality_level;
-    document.getElementById('timestamp').textContent = 'Updated: ' + data.timestamp;
-    document.getElementById('scoreDisplay').style.background = data.color;
+    
+    const scoreLabel = document.getElementById('scoreLabel');
+    const timestamp = document.getElementById('timestamp');
+    
+    if (scoreValue) {
+        scoreValue.textContent = data.quality_score;
+        scoreValue.className = 'assessment-value score-' + data.quality_level.toLowerCase();
+    }
+    if (scoreLabel) scoreLabel.textContent = data.quality_level;
+    if (timestamp) timestamp.textContent = 'Updated: ' + data.timestamp;
+    
     const recList = document.getElementById('recommendationsList');
-    recList.innerHTML = '';
-    data.recommendations.forEach(rec => {
-        const li = document.createElement('li');
-        li.textContent = rec;
-        recList.appendChild(li);
-    });
+    if (recList) {
+        recList.innerHTML = '';
+        data.recommendations.forEach(rec => {
+            const li = document.createElement('li');
+            li.textContent = rec;
+            recList.appendChild(li);
+        });
+    }
+    
     if (data.predicted_values) {
         document.getElementById('predictionTime').textContent = 'Prediction for: ' + data.prediction_time;
         document.getElementById('predTemp').textContent = data.predicted_values.water_temp + ' °C';
         document.getElementById('predDO').textContent = data.predicted_values.do + ' mg/L';
         document.getElementById('predPH').textContent = data.predicted_values.ph;
+        
         const risk = calculateFishHealthRisk(data.predicted_values.water_temp, data.predicted_values.do, data.predicted_values.ph);
-        document.getElementById('riskDisplay').className = 'risk-display ' + risk.class;
-        document.getElementById('riskLevel').textContent = risk.level;
-        document.getElementById('riskMessage').textContent = risk.message;
+        const riskLevel = document.getElementById('riskLevel');
+        const riskMessage = document.getElementById('riskMessage');
+        
+        if (riskLevel) {
+            riskLevel.textContent = risk.level;
+            riskLevel.className = 'assessment-value risk-' + risk.level.toLowerCase();
+        }
+        if (riskMessage) riskMessage.textContent = risk.message;
     }
 }
 

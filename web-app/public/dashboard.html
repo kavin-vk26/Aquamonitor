@@ -139,30 +139,26 @@
 
                 <div class="panel results-panel">
                     <div class="panel-header-enhanced">
-                        <h3>Quality Score</h3>
-                        <div class="panel-subtitle">Current water quality assessment</div>
+                        <h3>Quality Assessment</h3>
+                        <div class="panel-subtitle">Current water quality and risk evaluation</div>
                     </div>
-                    <div class="score-display-enhanced" id="scoreDisplay">
-                        <div class="score-circle">
-                            <div class="score-value" id="scoreValue">--</div>
-                            <div class="score-label" id="scoreLabel">--</div>
+                    <div class="assessment-display">
+                        <div class="assessment-row">
+                            <div class="assessment-item">
+                                <div class="assessment-label">Quality Score</div>
+                                <div class="assessment-value" id="scoreValue">--</div>
+                                <div class="assessment-status" id="scoreLabel">--</div>
+                            </div>
+                            <div class="assessment-divider"></div>
+                            <div class="assessment-item">
+                                <div class="assessment-label">Health Risk</div>
+                                <div class="assessment-value" id="riskLevel">--</div>
+                                <div class="assessment-message" id="riskMessage">Awaiting prediction...</div>
+                            </div>
                         </div>
-                        <div class="score-details">
+                        <div class="assessment-footer">
                             <small id="timestamp">Awaiting analysis...</small>
                         </div>
-                    </div>
-                </div>
-
-                <div class="panel results-panel">
-                    <div class="panel-header-enhanced">
-                        <h3>Fish Health Risk</h3>
-                        <div class="panel-subtitle">Species-specific risk assessment</div>
-                    </div>
-                    <div class="risk-display-enhanced" id="riskDisplay">
-                        <div class="risk-indicator">
-                            <div class="risk-level" id="riskLevel">--</div>
-                        </div>
-                        <div class="risk-message" id="riskMessage">Awaiting prediction...</div>
                     </div>
                 </div>
 
@@ -357,7 +353,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 AquaMonitor. All rights reserved.</p>
+                <p>&copy; 2026 AquaMonitor. All rights reserved.</p>
             </div>
         </div>
     </footer>

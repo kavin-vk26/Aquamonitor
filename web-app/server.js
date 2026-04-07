@@ -140,9 +140,9 @@ app.post('/api/predict-predator', upload.single('image'), (req, res) => {
     console.log('📷 Processing uploaded file:', req.file.originalname);
     console.log('📁 File path:', req.file.path);
     
-    // Use TensorFlow Lite model for prediction
+    // Use working TensorFlow Lite model for prediction
     const python = spawn('python', [
-        path.join(__dirname, 'debug_predator.py'),
+        path.join(__dirname, 'predict_predator_working.py'),
         req.file.path
     ]);
     

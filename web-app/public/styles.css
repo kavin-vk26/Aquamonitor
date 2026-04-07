@@ -1862,7 +1862,120 @@ body {
 .chart-access .btn {
     min-width: 200px;
 }
-/* Enhanced Prediction Panel Styles */
+/* Modern Assessment Display */
+.assessment-display {
+    padding: 1.5rem;
+}
+
+.assessment-row {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 1rem;
+}
+
+.assessment-item {
+    flex: 1;
+    text-align: center;
+}
+
+.assessment-divider {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent, var(--border), transparent);
+    flex-shrink: 0;
+}
+
+.assessment-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.assessment-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.assessment-status {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.assessment-message {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    margin-top: 0.25rem;
+}
+
+.assessment-footer {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.assessment-footer small {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* Risk Level Colors */
+.assessment-value.risk-low {
+    color: var(--success-color);
+}
+
+.assessment-value.risk-moderate {
+    color: var(--warning-color);
+}
+
+.assessment-value.risk-high {
+    color: var(--danger-color);
+}
+
+/* Quality Score Colors */
+.assessment-value.score-excellent {
+    color: #22c55e;
+}
+
+.assessment-value.score-good {
+    color: #84cc16;
+}
+
+.assessment-value.score-fair {
+    color: var(--warning-color);
+}
+
+.assessment-value.score-poor {
+    color: var(--danger-color);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .assessment-row {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .assessment-divider {
+        width: 60px;
+        height: 1px;
+        background: linear-gradient(to right, transparent, var(--border), transparent);
+    }
+    
+    .assessment-value {
+        font-size: 2rem;
+    }
+}
 .prediction-panel {
     background: var(--background);
     border: 1px solid var(--border);
